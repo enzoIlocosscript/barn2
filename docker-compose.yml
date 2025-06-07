@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  barn-builder:
+    build: .
+    ports:
+      - "9007:9007"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - barn-network
+
+networks:
+  barn-network:
+    driver: bridge
