@@ -295,7 +295,22 @@ const Wall: React.FC<WallProps> = ({
     const flangeHeight = 0.15;
     const flangeSpacing = Math.min(6, beamHeight / 4);
     
-    const zOffset = wallPosition === 'front' || wallPosition === 'back' ? -0.1 : 0.1;
+    // FIXED: Proper z-offset calculation to keep beams inside the wall
+    let zOffset = 0;
+    switch (wallPosition) {
+      case 'front':
+        zOffset = -0.05; // Slightly inside the wall
+        break;
+      case 'back':
+        zOffset = 0.05; // Slightly inside the wall
+        break;
+      case 'left':
+        zOffset = -0.05; // FIXED: Negative offset to keep beams inside
+        break;
+      case 'right':
+        zOffset = 0.05; // FIXED: Positive offset to keep beams inside
+        break;
+    }
     
     // Enhanced steel material for better lighting response
     const steelMaterial = new THREE.MeshStandardMaterial({
@@ -339,7 +354,22 @@ const Wall: React.FC<WallProps> = ({
     const beamDepth = 0.2;
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
-    const zOffset = wallPosition === 'front' || wallPosition === 'back' ? -0.1 : 0.1;
+    // FIXED: Proper z-offset calculation to keep beams inside the wall
+    let zOffset = 0;
+    switch (wallPosition) {
+      case 'front':
+        zOffset = -0.05; // Slightly inside the wall
+        break;
+      case 'back':
+        zOffset = 0.05; // Slightly inside the wall
+        break;
+      case 'left':
+        zOffset = -0.05; // FIXED: Negative offset to keep beams inside
+        break;
+      case 'right':
+        zOffset = 0.05; // FIXED: Positive offset to keep beams inside
+        break;
+    }
     
     // Enhanced steel material for better lighting response
     const steelMaterial = new THREE.MeshStandardMaterial({
