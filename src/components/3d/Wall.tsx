@@ -295,20 +295,20 @@ const Wall: React.FC<WallProps> = ({
     
     switch (wallPos) {
       case 'front':
-        console.log(`  Front wall: beams at z = -0.15 (interior side)`);
-        return -0.15; // Interior side of front wall (negative Z)
+        console.log(`  Front wall: beams at z = -0.2 (INTERIOR side)`);
+        return -0.2; // Interior side of front wall (negative Z)
       case 'back':
-        console.log(`  Back wall: beams at z = 0.15 (interior side)`);
-        return 0.15;  // FIXED: Interior side of back wall (positive Z)
+        console.log(`  Back wall: beams at z = 0.2 (INTERIOR side)`);
+        return 0.2;  // Interior side of back wall (positive Z)
       case 'left':
-        console.log(`  Left wall: beams at z = 0.15 (interior side)`);
-        return 0.15;  // Interior side of left wall (positive Z)
+        console.log(`  Left wall: beams at z = 0.2 (INTERIOR side)`);
+        return 0.2;  // Interior side of left wall (positive Z)
       case 'right':
-        console.log(`  Right wall: beams at z = 0.15 (interior side)`);
-        return 0.15;  // CRITICAL FIX: Interior side of right wall (positive Z, not negative!)
+        console.log(`  Right wall: beams at z = -0.2 (INTERIOR side)`);
+        return -0.2;  // CRITICAL FIX: Interior side of right wall (negative Z)
       default:
-        console.log(`  Unknown wall position, defaulting to z = 0.1`);
-        return 0.1;
+        console.log(`  Unknown wall position, defaulting to z = -0.1`);
+        return -0.1;
     }
   };
 
@@ -325,7 +325,7 @@ const Wall: React.FC<WallProps> = ({
     
     // CRITICAL FIX: Use consistent interior-side positioning for ALL walls
     const zOffset = getInteriorZOffset(wallPosition);
-    console.log(`🔧 Beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (${zOffset > 0 ? 'INTERIOR' : 'EXTERIOR'} side)`);
+    console.log(`🔧 Beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (INTERIOR side)`);
     
     // Enhanced steel material with architectural-grade appearance
     const steelMaterial = new THREE.MeshStandardMaterial({
@@ -339,7 +339,7 @@ const Wall: React.FC<WallProps> = ({
     
     return (
       <group key={key} position={[segment.x, beamCenterY, zOffset]}>
-        {/* Main structural beam segment - always visible */}
+        {/* Main structural beam segment - always visible on INTERIOR */}
         <mesh castShadow receiveShadow position={[0, 0, 0]}>
           <boxGeometry args={[beamWidth, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
@@ -380,7 +380,7 @@ const Wall: React.FC<WallProps> = ({
     
     // CRITICAL FIX: Use consistent interior-side positioning for ALL walls
     const zOffset = getInteriorZOffset(wallPosition);
-    console.log(`🔧 Horizontal beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (${zOffset > 0 ? 'INTERIOR' : 'EXTERIOR'} side)`);
+    console.log(`🔧 Horizontal beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (INTERIOR side)`);
     
     // Enhanced steel material for architectural consistency
     const steelMaterial = new THREE.MeshStandardMaterial({
@@ -394,7 +394,7 @@ const Wall: React.FC<WallProps> = ({
     
     return (
       <group key={key} position={[segment.x, beamCenterY, zOffset]}>
-        {/* Main horizontal structural beam - always visible */}
+        {/* Main horizontal structural beam - always visible on INTERIOR */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[beamWidth, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
@@ -431,10 +431,10 @@ const Wall: React.FC<WallProps> = ({
         <primitive object={wallMaterial} attach="material" />
       </mesh>
       
-      {/* STRUCTURAL BEAMS - Split around ALL features (doors AND windows) on interior side */}
+      {/* STRUCTURAL BEAMS - Split around ALL features (doors AND windows) on INTERIOR side ONLY */}
       {beamSegments.map((segment, index) => createPersistentSteelBeam(segment, index))}
       
-      {/* HORIZONTAL BEAMS - Split around ALL features (doors AND windows) on interior side */}
+      {/* HORIZONTAL BEAMS - Split around ALL features (doors AND windows) on INTERIOR side ONLY */}
       {horizontalBeamSegments.map((segment, index) => createPersistentHorizontalBeam(segment, index))}
     </group>
   );
