@@ -296,7 +296,7 @@ const Wall: React.FC<WallProps> = ({
     // CRITICAL: All beams MUST be positioned on the INTERIOR side of each wall
     // Wall thickness is 0.2, so beams go at -0.4 (deep interior positioning)
     const deepInteriorOffset = -0.4; // Even deeper interior positioning to ensure no exterior visibility
-    /*
+    
     switch (wallPos) {
       case 'front':
         // Front wall faces +Z direction, interior is -Z
@@ -317,7 +317,7 @@ const Wall: React.FC<WallProps> = ({
       default:
         console.log(`  Unknown wall position, defaulting to z = ${deepInteriorOffset}`);
        
-    }*/
+    }
      return deepInteriorOffset;
   };
 
