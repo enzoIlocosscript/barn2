@@ -83,14 +83,14 @@ const Wall: React.FC<WallProps> = ({
     });
   }, [color, width, height]);
 
-  // Create wall geometry with cutouts for windows only (doors remain solid for structural integrity)
+  // ANTI-FLICKER: Create wall geometry with ONLY window cutouts (doors remain solid)
   const wallGeometry = useMemo(() => {
-    // Only create cutouts for windows - doors and other features remain solid
+    // CRITICAL: Only create cutouts for windows - doors are rendered separately to prevent Z-fighting
     const windowFeatures = wallFeatures.filter(feature => 
       feature.position.wallPosition === wallPosition && feature.type === 'window'
     );
 
-    console.log(`🏗️ Creating wall geometry for ${wallPosition} with ${windowFeatures.length} window cutouts`);
+    console.log(`🏗️ ANTI-FLICKER: Creating ${wallPosition} wall with ${windowFeatures.length} window cutouts (doors rendered separately)`);
 
     // If it's a gabled wall (front/back) with roof pitch, create the gabled shape
     if ((wallPosition === 'front' || wallPosition === 'back') && roofPitch > 0) {
@@ -106,7 +106,7 @@ const Wall: React.FC<WallProps> = ({
       wallShape.lineTo(-width/2, height/2);
       wallShape.lineTo(-width/2, -height/2);
 
-      // Add window cutouts as holes (doors remain solid for structural integrity)
+      // Add ONLY window cutouts as holes (doors remain solid)
       windowFeatures.forEach(feature => {
         const windowHole = new THREE.Path();
         
@@ -169,13 +169,13 @@ const Wall: React.FC<WallProps> = ({
       geometry.attributes.uv.needsUpdate = true;
       return geometry;
     } else {
-      // Regular rectangular wall with window cutouts only
+      // Regular rectangular wall with ONLY window cutouts
       if (windowFeatures.length === 0) {
         // No windows, return simple box geometry
         return new THREE.BoxGeometry(width, height, 0.2);
       }
 
-      // Create wall shape with window cutouts only
+      // Create wall shape with ONLY window cutouts
       const wallShape = new THREE.Shape();
       wallShape.moveTo(-width/2, -height/2);
       wallShape.lineTo(width/2, -height/2);
@@ -183,7 +183,7 @@ const Wall: React.FC<WallProps> = ({
       wallShape.lineTo(-width/2, height/2);
       wallShape.closePath();
 
-      // Add window cutouts as holes (doors remain solid)
+      // Add ONLY window cutouts as holes (doors remain solid)
       windowFeatures.forEach(feature => {
         const windowHole = new THREE.Path();
         
@@ -248,11 +248,11 @@ const Wall: React.FC<WallProps> = ({
     }
   }, [width, height, wallPosition, roofPitch, wallFeatures]);
 
-  // CRITICAL FIX: Generate structural beams that split around ALL features (including doors)
+  // STRUCTURAL BEAMS: Generate beams that split around ALL features (including doors)
   const beamSegments = useMemo(() => {
     console.log(`\n🏗️  STRUCTURAL BEAM GENERATION for ${wallPosition} wall (${width}x${height})`);
     
-    // FIXED: Include ALL features for beam cutting - doors AND windows affect structural beams
+    // Include ALL features for beam cutting - doors AND windows affect structural beams
     const allFeatures = wallFeatures.filter(feature => 
       feature.position.wallPosition === wallPosition
     );
@@ -271,11 +271,11 @@ const Wall: React.FC<WallProps> = ({
     });
   }, [width, height, wallFeatures, wallPosition]);
 
-  // CRITICAL FIX: Generate horizontal beams that split around ALL features (including doors)
+  // HORIZONTAL BEAMS: Generate horizontal beams that split around ALL features
   const horizontalBeamSegments = useMemo(() => {
     console.log(`\n🏗️  HORIZONTAL STRUCTURAL BEAM GENERATION for ${wallPosition} wall`);
     
-    // FIXED: Include ALL features for horizontal beam cutting
+    // Include ALL features for horizontal beam cutting
     const allFeatures = wallFeatures.filter(feature => 
       feature.position.wallPosition === wallPosition
     );
@@ -289,13 +289,12 @@ const Wall: React.FC<WallProps> = ({
     );
   }, [width, height, wallFeatures, wallPosition]);
 
-  // 🎯 FINAL FIX: Calculate EXACT interior-side Z offset for ALL walls
-  const getFinalInteriorZOffset = (wallPos: WallPosition): number => {
-    console.log(`🎯 FINAL FIX: Calculating interior Z offset for ${wallPos} wall`);
+  // ANTI-FLICKER: Calculate DEEP interior Z offset for ALL walls to prevent exterior visibility
+  const getDeepInteriorZOffset = (wallPos: WallPosition): number => {
+    console.log(`🎯 ANTI-FLICKER: Calculating deep interior Z offset for ${wallPos} wall`);
     
-    // CRITICAL: All beams MUST be positioned on the INTERIOR side of each wall
-    // Wall thickness is 0.2, so beams go at -0.4 (deep interior positioning)
-    const deepInteriorOffset = -0.4; // Even deeper interior positioning to ensure no exterior visibility
+    // CRITICAL: All beams MUST be positioned DEEP on the interior side
+    const deepInteriorOffset = -0.5; // Very deep interior positioning
     
     switch (wallPos) {
       case 'front':
@@ -304,51 +303,51 @@ const Wall: React.FC<WallProps> = ({
         return deepInteriorOffset;
       case 'back':
         // Back wall faces -Z direction, interior is +Z
-        console.log(`  Back wall: beams at z = ${-deepInteriorOffset} (DEEP INTERIOR - FIXED)`);
-        return deepInteriorOffset; // CRITICAL FIX: Positive Z for back wall interior
+        console.log(`  Back wall: beams at z = ${-deepInteriorOffset} (DEEP INTERIOR)`);
+        return -deepInteriorOffset;
       case 'left':
-        // Left wall faces +X direction, interior is -X (but in local coordinates this is +Z)
+        // Left wall faces +X direction, interior is -X (in local coordinates this is +Z)
         console.log(`  Left wall: beams at z = ${-deepInteriorOffset} (DEEP INTERIOR)`);
         return -deepInteriorOffset;
       case 'right':
-        // Right wall faces -X direction, interior is +X (but in local coordinates this is -Z)
-        console.log(`  Right wall: beams at z = ${deepInteriorOffset} (DEEP INTERIOR - FIXED)`);
-        return -deepInteriorOffset; // CRITICAL FIX: Negative Z for right wall interior
+        // Right wall faces -X direction, interior is +X (in local coordinates this is -Z)
+        console.log(`  Right wall: beams at z = ${deepInteriorOffset} (DEEP INTERIOR)`);
+        return deepInteriorOffset;
       default:
         console.log(`  Unknown wall position, defaulting to z = ${deepInteriorOffset}`);
-       
+        return deepInteriorOffset;
     }
-     return deepInteriorOffset;
   };
 
-  // ENHANCED: Create persistent steel beam segments with architectural integrity
-  const createFinalInteriorBeam = (segment: BeamSegment, segmentIndex: number) => {
+  // ENHANCED: Create deep interior beam segments with anti-flicker positioning
+  const createDeepInteriorBeam = (segment: BeamSegment, segmentIndex: number) => {
     const beamWidth = segment.width;
-    const beamDepth = 0.2;
+    const beamDepth = 0.15; // Reduced depth to prevent wall intersection
     const beamHeight = segment.topY - segment.bottomY;
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
-    const flangeWidth = 0.4;
-    const flangeHeight = 0.15;
+    const flangeWidth = 0.35;
+    const flangeHeight = 0.12;
     const flangeSpacing = Math.min(6, beamHeight / 4);
     
-    // 🎯 FINAL FIX: Use EXACT interior-side positioning for ALL walls
-    const zOffset = getFinalInteriorZOffset(wallPosition);
-    console.log(`🔧 FINAL: Beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (GUARANTEED INTERIOR)`);
+    // ANTI-FLICKER: Use DEEP interior-side positioning
+    const zOffset = getDeepInteriorZOffset(wallPosition);
+    console.log(`🔧 ANTI-FLICKER: Beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (DEEP INTERIOR)`);
     
-    // Enhanced steel material with architectural-grade appearance
+    // Enhanced steel material with anti-flicker properties
     const steelMaterial = new THREE.MeshStandardMaterial({
       color: "#808080",
       metalness: 0.9,
       roughness: 0.1,
       envMapIntensity: 1.0,
+      side: THREE.FrontSide, // Only render front faces to prevent Z-fighting
     });
     
-    const key = `final-interior-beam-${wallPosition}-${segment.x}-${segment.bottomY}-${segment.topY}-${segmentIndex}`;
+    const key = `deep-interior-beam-${wallPosition}-${segment.x}-${segment.bottomY}-${segment.topY}-${segmentIndex}`;
     
     return (
       <group key={key} position={[segment.x, beamCenterY, zOffset]}>
-        {/* Main structural beam segment - GUARANTEED INTERIOR ONLY */}
+        {/* Main structural beam segment - DEEP INTERIOR ONLY */}
         <mesh castShadow receiveShadow position={[0, 0, 0]}>
           <boxGeometry args={[beamWidth, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
@@ -361,55 +360,56 @@ const Wall: React.FC<WallProps> = ({
           
           return (
             <mesh key={i} castShadow receiveShadow position={[0, flangeY, 0]}>
-              <boxGeometry args={[flangeWidth, flangeHeight, beamDepth * 1.2]} />
+              <boxGeometry args={[flangeWidth, flangeHeight, beamDepth * 1.1]} />
               <primitive object={steelMaterial} attach="material" />
             </mesh>
           );
         })}
         
-        {/* Structural connection points for seamless integration */}
+        {/* Structural connection points */}
         <mesh castShadow receiveShadow position={[0, -beamHeight/2, 0]}>
-          <cylinderGeometry args={[beamWidth/3, beamWidth/3, 0.1, 8]} />
+          <cylinderGeometry args={[beamWidth/3, beamWidth/3, 0.08, 8]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
         <mesh castShadow receiveShadow position={[0, beamHeight/2, 0]}>
-          <cylinderGeometry args={[beamWidth/3, beamWidth/3, 0.1, 8]} />
+          <cylinderGeometry args={[beamWidth/3, beamWidth/3, 0.08, 8]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
       </group>
     );
   };
 
-  // ENHANCED: Create persistent horizontal beam segments
-  const createFinalInteriorHorizontalBeam = (segment: BeamSegment, segmentIndex: number) => {
+  // ENHANCED: Create deep interior horizontal beam segments
+  const createDeepInteriorHorizontalBeam = (segment: BeamSegment, segmentIndex: number) => {
     const beamWidth = segment.width;
     const beamHeight = segment.topY - segment.bottomY;
-    const beamDepth = 0.2;
+    const beamDepth = 0.15; // Reduced depth to prevent wall intersection
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
-    // 🎯 FINAL FIX: Use EXACT interior-side positioning for ALL walls
-    const zOffset = getFinalInteriorZOffset(wallPosition);
-    console.log(`🔧 FINAL: Horizontal beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (GUARANTEED INTERIOR)`);
+    // ANTI-FLICKER: Use DEEP interior-side positioning
+    const zOffset = getDeepInteriorZOffset(wallPosition);
+    console.log(`🔧 ANTI-FLICKER: Horizontal beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (DEEP INTERIOR)`);
     
-    // Enhanced steel material for architectural consistency
+    // Enhanced steel material with anti-flicker properties
     const steelMaterial = new THREE.MeshStandardMaterial({
       color: "#808080",
       metalness: 0.9,
       roughness: 0.1,
       envMapIntensity: 1.0,
+      side: THREE.FrontSide, // Only render front faces
     });
     
-    const key = `final-interior-h-beam-${wallPosition}-${segment.x}-${segment.bottomY}-${segment.topY}-${segment.width}-${segmentIndex}`;
+    const key = `deep-interior-h-beam-${wallPosition}-${segment.x}-${segment.bottomY}-${segment.topY}-${segment.width}-${segmentIndex}`;
     
     return (
       <group key={key} position={[segment.x, beamCenterY, zOffset]}>
-        {/* Main horizontal structural beam - GUARANTEED INTERIOR ONLY */}
+        {/* Main horizontal structural beam - DEEP INTERIOR ONLY */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[beamWidth, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
         
-        {/* Structural end caps for architectural integrity */}
+        {/* Structural end caps */}
         <mesh castShadow receiveShadow position={[-beamWidth/2, 0, 0]}>
           <boxGeometry args={[beamHeight, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
@@ -419,13 +419,13 @@ const Wall: React.FC<WallProps> = ({
           <primitive object={steelMaterial} attach="material" />
         </mesh>
         
-        {/* Seamless connection points */}
+        {/* Connection points */}
         <mesh castShadow receiveShadow position={[-beamWidth/2, 0, 0]}>
-          <cylinderGeometry args={[beamHeight/4, beamHeight/4, 0.1, 6]} />
+          <cylinderGeometry args={[beamHeight/4, beamHeight/4, 0.08, 6]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
         <mesh castShadow receiveShadow position={[beamWidth/2, 0, 0]}>
-          <cylinderGeometry args={[beamHeight/4, beamHeight/4, 0.1, 6]} />
+          <cylinderGeometry args={[beamHeight/4, beamHeight/4, 0.08, 6]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
       </group>
@@ -434,17 +434,17 @@ const Wall: React.FC<WallProps> = ({
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Wall with window cutouts only - doors remain solid for structural integrity */}
+      {/* ANTI-FLICKER: Wall with ONLY window cutouts - doors rendered separately */}
       <mesh castShadow receiveShadow>
         <primitive object={wallGeometry} />
         <primitive object={wallMaterial} attach="material" />
       </mesh>
       
-      {/* 🎯 FINAL INTERIOR BEAMS - Split around ALL features, positioned DEEP INTERIOR ONLY */}
-      {beamSegments.map((segment, index) => createFinalInteriorBeam(segment, index))}
+      {/* DEEP INTERIOR BEAMS - Split around ALL features, positioned to prevent exterior visibility */}
+      {beamSegments.map((segment, index) => createDeepInteriorBeam(segment, index))}
       
-      {/* 🎯 FINAL INTERIOR HORIZONTAL BEAMS - Split around ALL features, positioned DEEP INTERIOR ONLY */}
-      {horizontalBeamSegments.map((segment, index) => createFinalInteriorHorizontalBeam(segment, index))}
+      {/* DEEP INTERIOR HORIZONTAL BEAMS - Split around ALL features */}
+      {horizontalBeamSegments.map((segment, index) => createDeepInteriorHorizontalBeam(segment, index))}
     </group>
   );
 };
