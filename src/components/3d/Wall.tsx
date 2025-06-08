@@ -313,7 +313,7 @@ const Wall: React.FC<WallProps> = ({
       case 'right':
         // Right wall faces -X direction, interior is +X (but in local coordinates this is -Z)
         console.log(`  Right wall: beams at z = ${deepInteriorOffset} (DEEP INTERIOR - FIXED)`);
-        return deepInteriorOffset; // CRITICAL FIX: Negative Z for right wall interior
+        return -deepInteriorOffset; // CRITICAL FIX: Negative Z for right wall interior
       default:
         console.log(`  Unknown wall position, defaulting to z = ${deepInteriorOffset}`);
        
