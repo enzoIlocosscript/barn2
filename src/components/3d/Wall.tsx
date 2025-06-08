@@ -24,6 +24,9 @@ const Wall: React.FC<WallProps> = ({
   roofPitch = 0,
   wallFeatures = []
 }) => {
+  // Increased wall thickness to better hide beams
+  const wallThickness = 0.6; // Increased from 0.2 to 0.6 (3x thicker)
+  
   // Create ribbed texture with special handling for white
   const wallMaterial = useMemo(() => {
     const textureWidth = 512;
@@ -140,7 +143,7 @@ const Wall: React.FC<WallProps> = ({
 
       const extrudeSettings = {
         steps: 1,
-        depth: 0.2,
+        depth: wallThickness, // Use increased wall thickness
         bevelEnabled: false
       };
 
@@ -168,8 +171,8 @@ const Wall: React.FC<WallProps> = ({
     } else {
       // Regular rectangular wall with window cutouts
       if (windowFeatures.length === 0) {
-        // No windows, return simple box geometry
-        return new THREE.BoxGeometry(width, height, 0.2);
+        // No windows, return simple box geometry with increased thickness
+        return new THREE.BoxGeometry(width, height, wallThickness);
       }
 
       // Create wall shape with window cutouts
@@ -216,7 +219,7 @@ const Wall: React.FC<WallProps> = ({
 
       const extrudeSettings = {
         steps: 1,
-        depth: 0.2,
+        depth: wallThickness, // Use increased wall thickness
         bevelEnabled: false
       };
 
@@ -242,7 +245,7 @@ const Wall: React.FC<WallProps> = ({
       geometry.attributes.uv.needsUpdate = true;
       return geometry;
     }
-  }, [width, height, wallPosition, roofPitch, wallFeatures]);
+  }, [width, height, wallPosition, roofPitch, wallFeatures, wallThickness]);
 
   // Calculate beam segments using precise cutting around features
   const beamSegments = useMemo(() => {
@@ -295,21 +298,21 @@ const Wall: React.FC<WallProps> = ({
     const flangeHeight = 0.15;
     const flangeSpacing = Math.min(6, beamHeight / 4);
     
-    // FIXED: Proper z-offset calculation to keep beams INSIDE the wall
-    // Wall thickness is 0.2, so beams should be positioned well inside
+    // IMPROVED: Much deeper z-offset to hide beams completely inside thick walls
+    // Wall thickness is now 0.6, so beams positioned well inside
     let zOffset = 0;
     switch (wallPosition) {
       case 'front':
-        zOffset = -0.08; // Inside the wall (wall extends from -0.1 to +0.1)
+        zOffset = -0.25; // Deep inside the wall (wall extends from -0.3 to +0.3)
         break;
       case 'back':
-        zOffset = 0.08; // Inside the wall
+        zOffset = 0.25; // Deep inside the wall
         break;
       case 'left':
-        zOffset = -0.08; // FIXED: Inside the wall, not visible from outside
+        zOffset = -0.25; // Deep inside the wall, completely hidden from outside
         break;
       case 'right':
-        zOffset = -0.08; // FIXED: Inside the wall, not visible from outside
+        zOffset = -0.25; // Deep inside the wall, completely hidden from outside
         break;
     }
     
@@ -355,20 +358,20 @@ const Wall: React.FC<WallProps> = ({
     const beamDepth = 0.2;
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
-    // FIXED: Proper z-offset calculation to keep beams INSIDE the wall
+    // IMPROVED: Much deeper z-offset to hide beams completely inside thick walls
     let zOffset = 0;
     switch (wallPosition) {
       case 'front':
-        zOffset = -0.08; // Inside the wall
+        zOffset = -0.25; // Deep inside the wall
         break;
       case 'back':
-        zOffset = 0.08; // Inside the wall
+        zOffset = 0.25; // Deep inside the wall
         break;
       case 'left':
-        zOffset = -0.08; // FIXED: Inside the wall, not visible from outside
+        zOffset = -0.25; // Deep inside the wall, completely hidden from outside
         break;
       case 'right':
-        zOffset = -0.08; // FIXED: Inside the wall, not visible from outside
+        zOffset = -0.25; // Deep inside the wall, completely hidden from outside
         break;
     }
     
@@ -405,7 +408,7 @@ const Wall: React.FC<WallProps> = ({
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Wall with window cutouts */}
+      {/* Wall with window cutouts - now much thicker */}
       <mesh castShadow receiveShadow>
         <primitive object={wallGeometry} />
         <primitive object={wallMaterial} attach="material" />
