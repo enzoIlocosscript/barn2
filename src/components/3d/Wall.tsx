@@ -305,7 +305,7 @@ const Wall: React.FC<WallProps> = ({
       case 'back':
         // Back wall faces -Z direction, interior is +Z
         console.log(`  Back wall: beams at z = ${-deepInteriorOffset} (DEEP INTERIOR - FIXED)`);
-        return -deepInteriorOffset; // CRITICAL FIX: Positive Z for back wall interior
+        return deepInteriorOffset; // CRITICAL FIX: Positive Z for back wall interior
       case 'left':
         // Left wall faces +X direction, interior is -X (but in local coordinates this is +Z)
         console.log(`  Left wall: beams at z = ${-deepInteriorOffset} (DEEP INTERIOR)`);
