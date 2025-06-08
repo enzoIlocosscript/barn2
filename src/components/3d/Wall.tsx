@@ -289,40 +289,39 @@ const Wall: React.FC<WallProps> = ({
     );
   }, [width, height, wallFeatures, wallPosition]);
 
-  // 🎯 REVOLUTIONARY FIX: Calculate ABSOLUTE interior positioning using building center as reference
-  const getAbsoluteInteriorPosition = (wallPos: WallPosition): [number, number, number] => {
-    console.log(`🎯 REVOLUTIONARY FIX: Calculating ABSOLUTE interior position for ${wallPos} wall`);
+  // 🎯 FINAL FIX: Calculate EXACT interior-side Z offset for ALL walls
+  const getFinalInteriorZOffset = (wallPos: WallPosition): number => {
+    console.log(`🎯 FINAL FIX: Calculating interior Z offset for ${wallPos} wall`);
     
-    // CRITICAL: Position beams RELATIVE TO BUILDING CENTER, not wall center
-    // This ensures they are ALWAYS on the interior side regardless of wall orientation
-    
-    const buildingCenterOffset = 0.6; // Distance from building center towards interior
+    // CRITICAL: All beams MUST be positioned on the INTERIOR side of each wall
+    // Wall thickness is 0.2, so beams go at -0.4 (deep interior positioning)
+    const deepInteriorOffset = -0.4; // Even deeper interior positioning to ensure no exterior visibility
     
     switch (wallPos) {
       case 'front':
-        // Front wall is at +Z, interior beams go towards building center (-Z direction)
-        console.log(`  Front wall: beams at BUILDING CENTER - ${buildingCenterOffset} = ${-buildingCenterOffset}`);
-        return [0, 0, -buildingCenterOffset];
+        // Front wall faces +Z direction, interior is -Z
+        console.log(`  Front wall: beams at z = ${deepInteriorOffset} (DEEP INTERIOR)`);
+        return deepInteriorOffset;
       case 'back':
-        // Back wall is at -Z, interior beams go towards building center (+Z direction)
-        console.log(`  Back wall: beams at BUILDING CENTER + ${buildingCenterOffset} = ${buildingCenterOffset}`);
-        return [0, 0, buildingCenterOffset];
+        // Back wall faces -Z direction, interior is +Z
+        console.log(`  Back wall: beams at z = ${-deepInteriorOffset} (DEEP INTERIOR - FIXED)`);
+        return -deepInteriorOffset; // CRITICAL FIX: Positive Z for back wall interior
       case 'left':
-        // Left wall is at -X, interior beams go towards building center (+X direction)
-        console.log(`  Left wall: beams at BUILDING CENTER + ${buildingCenterOffset} = ${buildingCenterOffset}`);
-        return [buildingCenterOffset, 0, 0];
+        // Left wall faces +X direction, interior is -X (but in local coordinates this is +Z)
+        console.log(`  Left wall: beams at z = ${-deepInteriorOffset} (DEEP INTERIOR)`);
+        return -deepInteriorOffset;
       case 'right':
-        // Right wall is at +X, interior beams go towards building center (-X direction)
-        console.log(`  Right wall: beams at BUILDING CENTER - ${buildingCenterOffset} = ${-buildingCenterOffset}`);
-        return [-buildingCenterOffset, 0, 0];
+        // Right wall faces -X direction, interior is +X (but in local coordinates this is -Z)
+        console.log(`  Right wall: beams at z = ${deepInteriorOffset} (DEEP INTERIOR - FIXED)`);
+        return deepInteriorOffset; // CRITICAL FIX: Negative Z for right wall interior
       default:
-        console.log(`  Unknown wall position, defaulting to building center`);
-        return [0, 0, 0];
+        console.log(`  Unknown wall position, defaulting to z = ${deepInteriorOffset}`);
+        return deepInteriorOffset;
     }
   };
 
-  // REVOLUTIONARY: Create beams positioned ABSOLUTELY relative to building center
-  const createAbsoluteInteriorBeam = (segment: BeamSegment, segmentIndex: number) => {
+  // ENHANCED: Create persistent steel beam segments with architectural integrity
+  const createFinalInteriorBeam = (segment: BeamSegment, segmentIndex: number) => {
     const beamWidth = segment.width;
     const beamDepth = 0.2;
     const beamHeight = segment.topY - segment.bottomY;
@@ -332,21 +331,9 @@ const Wall: React.FC<WallProps> = ({
     const flangeHeight = 0.15;
     const flangeSpacing = Math.min(6, beamHeight / 4);
     
-    // 🎯 REVOLUTIONARY FIX: Use ABSOLUTE positioning relative to building center
-    const [absoluteX, absoluteY, absoluteZ] = getAbsoluteInteriorPosition(wallPosition);
-    
-    // For rotated walls, we need to adjust the positioning
-    let finalPosition: [number, number, number];
-    
-    if (wallPosition === 'left' || wallPosition === 'right') {
-      // For side walls, the beam's X position becomes Z position in world coordinates
-      finalPosition = [absoluteX, beamCenterY, segment.x];
-    } else {
-      // For front/back walls, use normal positioning
-      finalPosition = [segment.x, beamCenterY, absoluteZ];
-    }
-    
-    console.log(`🔧 REVOLUTIONARY: Beam ${segmentIndex} on ${wallPosition} wall positioned at ABSOLUTE INTERIOR: [${finalPosition[0].toFixed(2)}, ${finalPosition[1].toFixed(2)}, ${finalPosition[2].toFixed(2)}]`);
+    // 🎯 FINAL FIX: Use EXACT interior-side positioning for ALL walls
+    const zOffset = getFinalInteriorZOffset(wallPosition);
+    console.log(`🔧 FINAL: Beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (GUARANTEED INTERIOR)`);
     
     // Enhanced steel material with architectural-grade appearance
     const steelMaterial = new THREE.MeshStandardMaterial({
@@ -356,11 +343,11 @@ const Wall: React.FC<WallProps> = ({
       envMapIntensity: 1.0,
     });
     
-    const key = `absolute-interior-beam-${wallPosition}-${segment.x}-${segment.bottomY}-${segment.topY}-${segmentIndex}`;
+    const key = `final-interior-beam-${wallPosition}-${segment.x}-${segment.bottomY}-${segment.topY}-${segmentIndex}`;
     
     return (
-      <group key={key} position={finalPosition}>
-        {/* Main structural beam segment - ABSOLUTELY POSITIONED INTERIOR ONLY */}
+      <group key={key} position={[segment.x, beamCenterY, zOffset]}>
+        {/* Main structural beam segment - GUARANTEED INTERIOR ONLY */}
         <mesh castShadow receiveShadow position={[0, 0, 0]}>
           <boxGeometry args={[beamWidth, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
@@ -392,28 +379,16 @@ const Wall: React.FC<WallProps> = ({
     );
   };
 
-  // REVOLUTIONARY: Create horizontal beams positioned ABSOLUTELY relative to building center
-  const createAbsoluteInteriorHorizontalBeam = (segment: BeamSegment, segmentIndex: number) => {
+  // ENHANCED: Create persistent horizontal beam segments
+  const createFinalInteriorHorizontalBeam = (segment: BeamSegment, segmentIndex: number) => {
     const beamWidth = segment.width;
     const beamHeight = segment.topY - segment.bottomY;
     const beamDepth = 0.2;
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
-    // 🎯 REVOLUTIONARY FIX: Use ABSOLUTE positioning relative to building center
-    const [absoluteX, absoluteY, absoluteZ] = getAbsoluteInteriorPosition(wallPosition);
-    
-    // For rotated walls, we need to adjust the positioning
-    let finalPosition: [number, number, number];
-    
-    if (wallPosition === 'left' || wallPosition === 'right') {
-      // For side walls, the beam's X position becomes Z position in world coordinates
-      finalPosition = [absoluteX, beamCenterY, segment.x];
-    } else {
-      // For front/back walls, use normal positioning
-      finalPosition = [segment.x, beamCenterY, absoluteZ];
-    }
-    
-    console.log(`🔧 REVOLUTIONARY: Horizontal beam ${segmentIndex} on ${wallPosition} wall positioned at ABSOLUTE INTERIOR: [${finalPosition[0].toFixed(2)}, ${finalPosition[1].toFixed(2)}, ${finalPosition[2].toFixed(2)}]`);
+    // 🎯 FINAL FIX: Use EXACT interior-side positioning for ALL walls
+    const zOffset = getFinalInteriorZOffset(wallPosition);
+    console.log(`🔧 FINAL: Horizontal beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (GUARANTEED INTERIOR)`);
     
     // Enhanced steel material for architectural consistency
     const steelMaterial = new THREE.MeshStandardMaterial({
@@ -423,11 +398,11 @@ const Wall: React.FC<WallProps> = ({
       envMapIntensity: 1.0,
     });
     
-    const key = `absolute-interior-h-beam-${wallPosition}-${segment.x}-${segment.bottomY}-${segment.topY}-${segment.width}-${segmentIndex}`;
+    const key = `final-interior-h-beam-${wallPosition}-${segment.x}-${segment.bottomY}-${segment.topY}-${segment.width}-${segmentIndex}`;
     
     return (
-      <group key={key} position={finalPosition}>
-        {/* Main horizontal structural beam - ABSOLUTELY POSITIONED INTERIOR ONLY */}
+      <group key={key} position={[segment.x, beamCenterY, zOffset]}>
+        {/* Main horizontal structural beam - GUARANTEED INTERIOR ONLY */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[beamWidth, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
@@ -464,11 +439,11 @@ const Wall: React.FC<WallProps> = ({
         <primitive object={wallMaterial} attach="material" />
       </mesh>
       
-      {/* 🎯 REVOLUTIONARY INTERIOR BEAMS - Positioned ABSOLUTELY relative to building center */}
-      {beamSegments.map((segment, index) => createAbsoluteInteriorBeam(segment, index))}
+      {/* 🎯 FINAL INTERIOR BEAMS - Split around ALL features, positioned DEEP INTERIOR ONLY */}
+      {beamSegments.map((segment, index) => createFinalInteriorBeam(segment, index))}
       
-      {/* 🎯 REVOLUTIONARY INTERIOR HORIZONTAL BEAMS - Positioned ABSOLUTELY relative to building center */}
-      {horizontalBeamSegments.map((segment, index) => createAbsoluteInteriorHorizontalBeam(segment, index))}
+      {/* 🎯 FINAL INTERIOR HORIZONTAL BEAMS - Split around ALL features, positioned DEEP INTERIOR ONLY */}
+      {horizontalBeamSegments.map((segment, index) => createFinalInteriorHorizontalBeam(segment, index))}
     </group>
   );
 };
