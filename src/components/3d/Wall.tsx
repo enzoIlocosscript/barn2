@@ -247,9 +247,9 @@ const Wall: React.FC<WallProps> = ({
     }
   }, [width, height, wallPosition, roofPitch, wallFeatures, wallThickness]);
 
-  // Calculate beam segments using precise cutting around features
+  // Calculate beam segments using enhanced precision cutting around features
   const beamSegments = useMemo(() => {
-    console.log(`\n🏗️  Generating cut beams for ${wallPosition} wall (${width}x${height}) with ${wallFeatures.length} features`);
+    console.log(`\n🏗️  ENHANCED BEAM GENERATION for ${wallPosition} wall (${width}x${height}) with ${wallFeatures.length} features`);
     
     // Filter features that are actually on this wall
     const relevantFeatures = wallFeatures.filter(feature => 
@@ -269,9 +269,9 @@ const Wall: React.FC<WallProps> = ({
     });
   }, [width, height, wallFeatures, wallPosition]);
 
-  // Calculate horizontal beam segments using precise cutting around features
+  // Calculate horizontal beam segments using enhanced precision cutting around features
   const horizontalBeamSegments = useMemo(() => {
-    console.log(`\n🏗️  Generating cut horizontal beams for ${wallPosition} wall`);
+    console.log(`\n🏗️  ENHANCED HORIZONTAL BEAM GENERATION for ${wallPosition} wall`);
     
     // Filter features that are actually on this wall
     const relevantFeatures = wallFeatures.filter(feature => 
@@ -287,10 +287,10 @@ const Wall: React.FC<WallProps> = ({
     );
   }, [width, height, wallFeatures, wallPosition]);
 
-  // Create steel beam segment with enhanced materials for better lighting
-  const createSteelBeamSegment = (segment: BeamSegment) => {
+  // Create enhanced steel beam segment with improved structural visualization
+  const createSteelBeamSegment = (segment: BeamSegment, segmentIndex: number) => {
     const beamWidth = segment.width;
-    const beamDepth = 0.2;
+    const beamDepth = 0.25; // Slightly increased for better visibility
     const beamHeight = segment.topY - segment.bottomY;
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
@@ -313,11 +313,11 @@ const Wall: React.FC<WallProps> = ({
         zOffset = 0.35; // Interior side of left wall (inside the building)
         break;
       case 'right':
-        zOffset = 0.35; // FIXED: Interior side of right wall (inside the building)
+        zOffset = 0.35; // Interior side of right wall (inside the building)
         break;
     }
     
-    // Enhanced steel material for better lighting response
+    // Enhanced steel material for better lighting response and structural appearance
     const steelMaterial = new THREE.MeshStandardMaterial({
       color: "#808080",
       metalness: 0.9,
@@ -325,17 +325,17 @@ const Wall: React.FC<WallProps> = ({
       envMapIntensity: 1.0,
     });
     
-    const key = `${segment.x}-${segment.bottomY}-${segment.topY}`;
+    const key = `${segment.x}-${segment.bottomY}-${segment.topY}-${segmentIndex}`;
     
     return (
       <group key={key} position={[segment.x, beamCenterY, zOffset]}>
-        {/* Main vertical beam segment */}
+        {/* Main vertical beam segment with enhanced structural appearance */}
         <mesh castShadow receiveShadow position={[0, 0, 0]}>
           <boxGeometry args={[beamWidth, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
         
-        {/* Flanges along the beam - only add if beam segment is tall enough */}
+        {/* Enhanced flanges along the beam - only add if beam segment is tall enough */}
         {beamHeight > 2 && Array.from({ length: Math.max(1, Math.ceil(beamHeight / flangeSpacing)) }).map((_, i) => {
           const flangeY = -beamHeight/2 + i * flangeSpacing;
           // Don't place flange outside the beam bounds
@@ -348,15 +348,25 @@ const Wall: React.FC<WallProps> = ({
             </mesh>
           );
         })}
+        
+        {/* Structural connection points at segment ends for visual continuity */}
+        <mesh castShadow receiveShadow position={[0, -beamHeight/2, 0]}>
+          <cylinderGeometry args={[beamWidth/3, beamWidth/3, 0.1, 8]} />
+          <primitive object={steelMaterial} attach="material" />
+        </mesh>
+        <mesh castShadow receiveShadow position={[0, beamHeight/2, 0]}>
+          <cylinderGeometry args={[beamWidth/3, beamWidth/3, 0.1, 8]} />
+          <primitive object={steelMaterial} attach="material" />
+        </mesh>
       </group>
     );
   };
 
-  // Create horizontal beam segment with enhanced materials
-  const createHorizontalBeamSegment = (segment: BeamSegment) => {
+  // Create enhanced horizontal beam segment with improved structural visualization
+  const createHorizontalBeamSegment = (segment: BeamSegment, segmentIndex: number) => {
     const beamWidth = segment.width;
     const beamHeight = segment.topY - segment.bottomY;
-    const beamDepth = 0.2;
+    const beamDepth = 0.25; // Slightly increased for better visibility
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
     // CRITICAL FIX: Position horizontal beams ONLY on the interior side
@@ -372,7 +382,7 @@ const Wall: React.FC<WallProps> = ({
         zOffset = 0.35; // Interior side of left wall
         break;
       case 'right':
-        zOffset = 0.35; // FIXED: Interior side of right wall
+        zOffset = 0.35; // Interior side of right wall
         break;
     }
     
@@ -384,23 +394,33 @@ const Wall: React.FC<WallProps> = ({
       envMapIntensity: 1.0,
     });
     
-    const key = `h-${segment.x}-${segment.bottomY}-${segment.topY}-${segment.width}`;
+    const key = `h-${segment.x}-${segment.bottomY}-${segment.topY}-${segment.width}-${segmentIndex}`;
     
     return (
       <group key={key} position={[segment.x, beamCenterY, zOffset]}>
-        {/* Main horizontal beam segment */}
+        {/* Main horizontal beam segment with enhanced structural appearance */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[beamWidth, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
         
-        {/* End caps for horizontal beams */}
+        {/* Enhanced end caps for horizontal beams with structural detailing */}
         <mesh castShadow receiveShadow position={[-beamWidth/2, 0, 0]}>
           <boxGeometry args={[beamHeight, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
         <mesh castShadow receiveShadow position={[beamWidth/2, 0, 0]}>
           <boxGeometry args={[beamHeight, beamHeight, beamDepth]} />
+          <primitive object={steelMaterial} attach="material" />
+        </mesh>
+        
+        {/* Structural connection points for visual continuity */}
+        <mesh castShadow receiveShadow position={[-beamWidth/2, 0, 0]}>
+          <cylinderGeometry args={[beamHeight/4, beamHeight/4, 0.1, 6]} />
+          <primitive object={steelMaterial} attach="material" />
+        </mesh>
+        <mesh castShadow receiveShadow position={[beamWidth/2, 0, 0]}>
+          <cylinderGeometry args={[beamHeight/4, beamHeight/4, 0.1, 6]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
       </group>
@@ -415,11 +435,11 @@ const Wall: React.FC<WallProps> = ({
         <primitive object={wallMaterial} attach="material" />
       </mesh>
       
-      {/* Render precisely cut vertical beam segments - beams are CUT, not removed */}
-      {beamSegments.map((segment) => createSteelBeamSegment(segment))}
+      {/* Render enhanced precision-cut vertical beam segments with structural continuity */}
+      {beamSegments.map((segment, index) => createSteelBeamSegment(segment, index))}
       
-      {/* Render precisely cut horizontal beam segments - beams are CUT, not removed */}
-      {horizontalBeamSegments.map((segment) => createHorizontalBeamSegment(segment))}
+      {/* Render enhanced precision-cut horizontal beam segments with structural continuity */}
+      {horizontalBeamSegments.map((segment, index) => createHorizontalBeamSegment(segment, index))}
     </group>
   );
 };
