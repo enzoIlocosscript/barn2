@@ -25,7 +25,7 @@ const Wall: React.FC<WallProps> = ({
   wallFeatures = []
 }) => {
   // Increased wall thickness to better hide beams
-  const wallThickness = 0.6; // Increased from 0.2 to 0.6 (3x thicker)
+  const wallThickness = 0.8; // Further increased for complete beam hiding
   
   // Create ribbed texture with special handling for white
   const wallMaterial = useMemo(() => {
@@ -298,21 +298,22 @@ const Wall: React.FC<WallProps> = ({
     const flangeHeight = 0.15;
     const flangeSpacing = Math.min(6, beamHeight / 4);
     
-    // IMPROVED: Much deeper z-offset to hide beams completely inside thick walls
-    // Wall thickness is now 0.6, so beams positioned well inside
+    // CRITICAL FIX: Position beams ONLY on the interior side of walls
+    // Wall thickness is 0.8, so wall extends from -0.4 to +0.4
+    // Position beams at interior side only (negative Z for all walls when viewed from outside)
     let zOffset = 0;
     switch (wallPosition) {
       case 'front':
-        zOffset = -0.25; // Deep inside the wall (wall extends from -0.3 to +0.3)
+        zOffset = -0.35; // Interior side of front wall (inside the building)
         break;
       case 'back':
-        zOffset = 0.25; // Deep inside the wall
+        zOffset = 0.35; // Interior side of back wall (inside the building)
         break;
       case 'left':
-        zOffset = -0.25; // Deep inside the wall, completely hidden from outside
+        zOffset = 0.35; // Interior side of left wall (inside the building)
         break;
       case 'right':
-        zOffset = -0.25; // Deep inside the wall, completely hidden from outside
+        zOffset = -0.35; // Interior side of right wall (inside the building)
         break;
     }
     
@@ -358,20 +359,20 @@ const Wall: React.FC<WallProps> = ({
     const beamDepth = 0.2;
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
-    // IMPROVED: Much deeper z-offset to hide beams completely inside thick walls
+    // CRITICAL FIX: Position horizontal beams ONLY on the interior side
     let zOffset = 0;
     switch (wallPosition) {
       case 'front':
-        zOffset = -0.25; // Deep inside the wall
+        zOffset = -0.35; // Interior side of front wall
         break;
       case 'back':
-        zOffset = 0.25; // Deep inside the wall
+        zOffset = 0.35; // Interior side of back wall
         break;
       case 'left':
-        zOffset = -0.25; // Deep inside the wall, completely hidden from outside
+        zOffset = 0.35; // Interior side of left wall
         break;
       case 'right':
-        zOffset = -0.25; // Deep inside the wall, completely hidden from outside
+        zOffset = -0.35; // Interior side of right wall
         break;
     }
     
