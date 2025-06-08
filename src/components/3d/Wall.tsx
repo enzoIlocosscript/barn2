@@ -86,12 +86,16 @@ const Wall: React.FC<WallProps> = ({
     });
   }, [color, width, height]);
 
-  // Create wall geometry with cutouts for windows and doors
+  // Create wall geometry with cutouts for ALL features (windows AND doors)
   const wallGeometry = useMemo(() => {
-    // Filter features that are actually on this wall and are windows (need cutouts)
-    const windowFeatures = wallFeatures.filter(feature => 
-      feature.position.wallPosition === wallPosition && feature.type === 'window'
+    // CRITICAL FIX: Filter features that need cutouts - INCLUDE DOORS
+    const cutoutFeatures = wallFeatures.filter(feature => 
+      feature.position.wallPosition === wallPosition && 
+      (feature.type === 'window' || feature.type === 'door' || feature.type === 'rollupDoor' || feature.type === 'walkDoor')
     );
+
+    console.log(`🏗️ Creating wall geometry for ${wallPosition} with ${cutoutFeatures.length} cutout features:`, 
+      cutoutFeatures.map(f => `${f.type} (${f.width}x${f.height})`));
 
     // If it's a gabled wall (front/back) with roof pitch, create the gabled shape
     if ((wallPosition === 'front' || wallPosition === 'back') && roofPitch > 0) {
@@ -107,38 +111,39 @@ const Wall: React.FC<WallProps> = ({
       wallShape.lineTo(-width/2, height/2);
       wallShape.lineTo(-width/2, -height/2);
 
-      // Add window cutouts as holes
-      windowFeatures.forEach(feature => {
-        const windowHole = new THREE.Path();
+      // Add ALL feature cutouts as holes (windows AND doors)
+      cutoutFeatures.forEach(feature => {
+        const featureHole = new THREE.Path();
         
-        // Calculate window position based on alignment
-        let windowX = 0;
+        // Calculate feature position based on alignment
+        let featureX = 0;
         switch (feature.position.alignment) {
           case 'left':
-            windowX = -width/2 + feature.position.xOffset + feature.width/2;
+            featureX = -width/2 + feature.position.xOffset + feature.width/2;
             break;
           case 'right':
-            windowX = width/2 - feature.position.xOffset - feature.width/2;
+            featureX = width/2 - feature.position.xOffset - feature.width/2;
             break;
           case 'center':
           default:
-            windowX = feature.position.xOffset;
+            featureX = feature.position.xOffset;
             break;
         }
         
-        const windowY = -height/2 + feature.position.yOffset + feature.height/2;
+        const featureY = -height/2 + feature.position.yOffset + feature.height/2;
         
-        // Create rectangular hole for window
+        // Create rectangular hole for feature
         const halfWidth = feature.width / 2;
         const halfHeight = feature.height / 2;
         
-        windowHole.moveTo(windowX - halfWidth, windowY - halfHeight);
-        windowHole.lineTo(windowX + halfWidth, windowY - halfHeight);
-        windowHole.lineTo(windowX + halfWidth, windowY + halfHeight);
-        windowHole.lineTo(windowX - halfWidth, windowY + halfHeight);
-        windowHole.closePath();
+        featureHole.moveTo(featureX - halfWidth, featureY - halfHeight);
+        featureHole.lineTo(featureX + halfWidth, featureY - halfHeight);
+        featureHole.lineTo(featureX + halfWidth, featureY + halfHeight);
+        featureHole.lineTo(featureX - halfWidth, featureY + halfHeight);
+        featureHole.closePath();
         
-        wallShape.holes.push(windowHole);
+        wallShape.holes.push(featureHole);
+        console.log(`  Added ${feature.type} cutout at (${featureX.toFixed(1)}, ${featureY.toFixed(1)})`);
       });
 
       const extrudeSettings = {
@@ -169,13 +174,13 @@ const Wall: React.FC<WallProps> = ({
       geometry.attributes.uv.needsUpdate = true;
       return geometry;
     } else {
-      // Regular rectangular wall with window cutouts
-      if (windowFeatures.length === 0) {
-        // No windows, return simple box geometry with increased thickness
+      // Regular rectangular wall with ALL feature cutouts
+      if (cutoutFeatures.length === 0) {
+        // No features, return simple box geometry with increased thickness
         return new THREE.BoxGeometry(width, height, wallThickness);
       }
 
-      // Create wall shape with window cutouts
+      // Create wall shape with ALL feature cutouts
       const wallShape = new THREE.Shape();
       wallShape.moveTo(-width/2, -height/2);
       wallShape.lineTo(width/2, -height/2);
@@ -183,38 +188,39 @@ const Wall: React.FC<WallProps> = ({
       wallShape.lineTo(-width/2, height/2);
       wallShape.closePath();
 
-      // Add window cutouts as holes
-      windowFeatures.forEach(feature => {
-        const windowHole = new THREE.Path();
+      // Add ALL feature cutouts as holes (windows AND doors)
+      cutoutFeatures.forEach(feature => {
+        const featureHole = new THREE.Path();
         
-        // Calculate window position based on alignment
-        let windowX = 0;
+        // Calculate feature position based on alignment
+        let featureX = 0;
         switch (feature.position.alignment) {
           case 'left':
-            windowX = -width/2 + feature.position.xOffset + feature.width/2;
+            featureX = -width/2 + feature.position.xOffset + feature.width/2;
             break;
           case 'right':
-            windowX = width/2 - feature.position.xOffset - feature.width/2;
+            featureX = width/2 - feature.position.xOffset - feature.width/2;
             break;
           case 'center':
           default:
-            windowX = feature.position.xOffset;
+            featureX = feature.position.xOffset;
             break;
         }
         
-        const windowY = -height/2 + feature.position.yOffset + feature.height/2;
+        const featureY = -height/2 + feature.position.yOffset + feature.height/2;
         
-        // Create rectangular hole for window
+        // Create rectangular hole for feature
         const halfWidth = feature.width / 2;
         const halfHeight = feature.height / 2;
         
-        windowHole.moveTo(windowX - halfWidth, windowY - halfHeight);
-        windowHole.lineTo(windowX + halfWidth, windowY - halfHeight);
-        windowHole.lineTo(windowX + halfWidth, windowY + halfHeight);
-        windowHole.lineTo(windowX - halfWidth, windowY + halfHeight);
-        windowHole.closePath();
+        featureHole.moveTo(featureX - halfWidth, featureY - halfHeight);
+        featureHole.lineTo(featureX + halfWidth, featureY - halfHeight);
+        featureHole.lineTo(featureX + halfWidth, featureY + halfHeight);
+        featureHole.lineTo(featureX - halfWidth, featureY + halfHeight);
+        featureHole.closePath();
         
-        wallShape.holes.push(windowHole);
+        wallShape.holes.push(featureHole);
+        console.log(`  Added ${feature.type} cutout at (${featureX.toFixed(1)}, ${featureY.toFixed(1)})`);
       });
 
       const extrudeSettings = {
@@ -429,7 +435,7 @@ const Wall: React.FC<WallProps> = ({
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Wall with window cutouts - now much thicker */}
+      {/* Wall with ALL feature cutouts (windows AND doors) - now much thicker */}
       <mesh castShadow receiveShadow>
         <primitive object={wallGeometry} />
         <primitive object={wallMaterial} attach="material" />
