@@ -291,21 +291,21 @@ const Wall: React.FC<WallProps> = ({
 
   // CRITICAL FIX: Calculate correct interior-side Z offset for ALL walls
   const getInteriorZOffset = (wallPos: WallPosition): number => {
-    console.log(`🎯 Calculating interior Z offset for ${wallPos} wall`);
+    console.log(`🎯 CRITICAL FIX: Calculating interior Z offset for ${wallPos} wall`);
     
     switch (wallPos) {
       case 'front':
         console.log(`  Front wall: beams at z = -0.15 (interior side)`);
         return -0.15; // Interior side of front wall (negative Z)
       case 'back':
-        console.log(`  Back wall: beams at z = -0.15 (interior side)`);
-        return -0.15;  // FIXED: Interior side of back wall (negative Z, not positive)
+        console.log(`  Back wall: beams at z = 0.15 (interior side)`);
+        return 0.15;  // FIXED: Interior side of back wall (positive Z)
       case 'left':
         console.log(`  Left wall: beams at z = 0.15 (interior side)`);
         return 0.15;  // Interior side of left wall (positive Z)
       case 'right':
-        console.log(`  Right wall: beams at z = -0.15 (interior side)`);
-        return -0.15;  // Interior side of right wall (negative Z)
+        console.log(`  Right wall: beams at z = 0.15 (interior side)`);
+        return 0.15;  // CRITICAL FIX: Interior side of right wall (positive Z, not negative!)
       default:
         console.log(`  Unknown wall position, defaulting to z = 0.1`);
         return 0.1;
@@ -325,6 +325,7 @@ const Wall: React.FC<WallProps> = ({
     
     // CRITICAL FIX: Use consistent interior-side positioning for ALL walls
     const zOffset = getInteriorZOffset(wallPosition);
+    console.log(`🔧 Beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (${zOffset > 0 ? 'INTERIOR' : 'EXTERIOR'} side)`);
     
     // Enhanced steel material with architectural-grade appearance
     const steelMaterial = new THREE.MeshStandardMaterial({
@@ -379,6 +380,7 @@ const Wall: React.FC<WallProps> = ({
     
     // CRITICAL FIX: Use consistent interior-side positioning for ALL walls
     const zOffset = getInteriorZOffset(wallPosition);
+    console.log(`🔧 Horizontal beam ${segmentIndex} on ${wallPosition} wall positioned at Z = ${zOffset} (${zOffset > 0 ? 'INTERIOR' : 'EXTERIOR'} side)`);
     
     // Enhanced steel material for architectural consistency
     const steelMaterial = new THREE.MeshStandardMaterial({
