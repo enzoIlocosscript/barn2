@@ -300,7 +300,7 @@ const Wall: React.FC<WallProps> = ({
     
     // CRITICAL FIX: Position beams ONLY on the interior side of walls
     // Wall thickness is 0.8, so wall extends from -0.4 to +0.4
-    // Position beams at interior side only (negative Z for all walls when viewed from outside)
+    // Position beams deep inside the wall, closer to the interior surface
     let zOffset = 0;
     switch (wallPosition) {
       case 'front':
@@ -313,7 +313,7 @@ const Wall: React.FC<WallProps> = ({
         zOffset = 0.35; // Interior side of left wall (inside the building)
         break;
       case 'right':
-        zOffset = -0.35; // Interior side of right wall (inside the building)
+        zOffset = 0.35; // FIXED: Interior side of right wall (inside the building)
         break;
     }
     
@@ -372,7 +372,7 @@ const Wall: React.FC<WallProps> = ({
         zOffset = 0.35; // Interior side of left wall
         break;
       case 'right':
-        zOffset = -0.35; // Interior side of right wall
+        zOffset = 0.35; // FIXED: Interior side of right wall
         break;
     }
     
