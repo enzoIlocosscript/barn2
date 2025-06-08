@@ -287,6 +287,29 @@ const Wall: React.FC<WallProps> = ({
     );
   }, [width, height, wallFeatures, wallPosition]);
 
+  // CRITICAL FIX: Calculate interior-side Z offset for ALL walls consistently
+  const getInteriorZOffset = (wallPos: WallPosition): number => {
+    console.log(`🎯 Calculating interior Z offset for ${wallPos} wall`);
+    
+    switch (wallPos) {
+      case 'front':
+        console.log(`  Front wall: beams at z = -0.15 (interior side)`);
+        return -0.15; // Interior side of front wall (negative Z)
+      case 'back':
+        console.log(`  Back wall: beams at z = 0.15 (interior side)`);
+        return 0.15;  // Interior side of back wall (positive Z)
+      case 'left':
+        console.log(`  Left wall: beams at z = 0.15 (interior side)`);
+        return 0.15;  // Interior side of left wall (positive Z)
+      case 'right':
+        console.log(`  Right wall: beams at z = 0.15 (interior side)`);
+        return 0.15;  // Interior side of right wall (positive Z)
+      default:
+        console.log(`  Unknown wall position, defaulting to z = 0.1`);
+        return 0.1;
+    }
+  };
+
   // ENHANCED: Create persistent steel beam segments with architectural integrity
   const createPersistentSteelBeam = (segment: BeamSegment, segmentIndex: number) => {
     const beamWidth = segment.width;
@@ -298,22 +321,8 @@ const Wall: React.FC<WallProps> = ({
     const flangeHeight = 0.15;
     const flangeSpacing = Math.min(6, beamHeight / 4);
     
-    // Position beams consistently on interior side for all walls
-    let zOffset = 0;
-    switch (wallPosition) {
-      case 'front':
-        zOffset = -0.1; // Interior side of front wall
-        break;
-      case 'back':
-        zOffset = 0.1; // Interior side of back wall
-        break;
-      case 'left':
-        zOffset = 0.1; // Interior side of left wall
-        break;
-      case 'right':
-        zOffset = 0.1; // Interior side of right wall
-        break;
-    }
+    // CRITICAL FIX: Use consistent interior-side positioning for ALL walls
+    const zOffset = getInteriorZOffset(wallPosition);
     
     // Enhanced steel material with architectural-grade appearance
     const steelMaterial = new THREE.MeshStandardMaterial({
@@ -323,7 +332,7 @@ const Wall: React.FC<WallProps> = ({
       envMapIntensity: 1.0,
     });
     
-    const key = `persistent-beam-${segment.x}-${segment.bottomY}-${segment.topY}-${segmentIndex}`;
+    const key = `persistent-beam-${wallPosition}-${segment.x}-${segment.bottomY}-${segment.topY}-${segmentIndex}`;
     
     return (
       <group key={key} position={[segment.x, beamCenterY, zOffset]}>
@@ -366,22 +375,8 @@ const Wall: React.FC<WallProps> = ({
     const beamDepth = 0.2;
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
-    // Position horizontal beams consistently on interior side
-    let zOffset = 0;
-    switch (wallPosition) {
-      case 'front':
-        zOffset = -0.1; // Interior side of front wall
-        break;
-      case 'back':
-        zOffset = 0.1; // Interior side of back wall
-        break;
-      case 'left':
-        zOffset = 0.1; // Interior side of left wall
-        break;
-      case 'right':
-        zOffset = 0.1; // Interior side of right wall
-        break;
-    }
+    // CRITICAL FIX: Use consistent interior-side positioning for ALL walls
+    const zOffset = getInteriorZOffset(wallPosition);
     
     // Enhanced steel material for architectural consistency
     const steelMaterial = new THREE.MeshStandardMaterial({
@@ -391,7 +386,7 @@ const Wall: React.FC<WallProps> = ({
       envMapIntensity: 1.0,
     });
     
-    const key = `persistent-h-beam-${segment.x}-${segment.bottomY}-${segment.topY}-${segment.width}-${segmentIndex}`;
+    const key = `persistent-h-beam-${wallPosition}-${segment.x}-${segment.bottomY}-${segment.topY}-${segment.width}-${segmentIndex}`;
     
     return (
       <group key={key} position={[segment.x, beamCenterY, zOffset]}>
@@ -432,10 +427,10 @@ const Wall: React.FC<WallProps> = ({
         <primitive object={wallMaterial} attach="material" />
       </mesh>
       
-      {/* PERSISTENT STRUCTURAL BEAMS - Always visible regardless of wall fixtures */}
+      {/* PERSISTENT STRUCTURAL BEAMS - Always visible on interior side regardless of wall fixtures */}
       {beamSegments.map((segment, index) => createPersistentSteelBeam(segment, index))}
       
-      {/* PERSISTENT HORIZONTAL BEAMS - Always visible with seamless connections */}
+      {/* PERSISTENT HORIZONTAL BEAMS - Always visible on interior side with seamless connections */}
       {horizontalBeamSegments.map((segment, index) => createPersistentHorizontalBeam(segment, index))}
     </group>
   );
