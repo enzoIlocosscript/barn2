@@ -19,10 +19,10 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
     let z = 0;
     let rotY = 0;
     
-    // Calculate position based on wall and alignment
+    // CRITICAL FIX: Corrected alignment logic for left and right walls
     switch (feature.position.wallPosition) {
       case 'front':
-        z = halfLength + 0.1; // Slight offset to prevent z-fighting
+        z = halfLength + 0.15; // Increased offset to prevent z-fighting
         
         if (feature.position.alignment === 'left') {
           x = -halfWidth + feature.width/2 + feature.position.xOffset;
@@ -36,7 +36,7 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
         break;
         
       case 'back':
-        z = -halfLength - 0.1; // Slight offset to prevent z-fighting
+        z = -halfLength - 0.15; // Increased offset to prevent z-fighting
         
         if (feature.position.alignment === 'left') {
           x = halfWidth - feature.width/2 - feature.position.xOffset;
@@ -50,11 +50,12 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
         break;
         
       case 'left':
-        x = -halfWidth - 0.1; // Slight offset to prevent z-fighting
+        x = -halfWidth - 0.15; // Increased offset to prevent z-fighting
         
-        if (feature.position.alignment === 'right') {
+        // FIXED: Corrected alignment logic for left wall
+        if (feature.position.alignment === 'left') {
           z = -halfLength + feature.width/2 + feature.position.xOffset;
-        } else if (feature.position.alignment === 'left') {
+        } else if (feature.position.alignment === 'right') {
           z = halfLength - feature.width/2 - feature.position.xOffset;
         } else { // center
           z = feature.position.xOffset;
@@ -64,11 +65,12 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
         break;
         
       case 'right':
-        x = halfWidth + 0.1; // Slight offset to prevent z-fighting
+        x = halfWidth + 0.15; // Increased offset to prevent z-fighting
         
-        if (feature.position.alignment === 'right') {
+        // FIXED: Corrected alignment logic for right wall
+        if (feature.position.alignment === 'left') {
           z = halfLength - feature.width/2 - feature.position.xOffset;
-        } else if (feature.position.alignment === 'left') {
+        } else if (feature.position.alignment === 'right') {
           z = -halfLength + feature.width/2 + feature.position.xOffset;
         } else { // center
           z = -feature.position.xOffset;
@@ -81,7 +83,7 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
     return {
       position: [x, y, z] as [number, number, number],
       rotation: [0, rotY, 0] as [number, number, number],
-      dimensions: [feature.width, feature.height, 0.4] as [number, number, number]
+      dimensions: [feature.width, feature.height, 0.5] as [number, number, number] // Increased depth for better visibility
     };
   }, [feature, buildingDimensions]);
 
@@ -117,9 +119,14 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
       case 'door':
         return (
           <group>
-            <mesh castShadow>
+            <mesh castShadow receiveShadow>
               <boxGeometry args={dimensions} />
-              <meshStandardMaterial color="#8B4513" metalness={0.1} roughness={0.8} />
+              <meshStandardMaterial 
+                color="#8B4513" 
+                metalness={0.1} 
+                roughness={0.8}
+                side={THREE.DoubleSide} // Ensure visibility from both sides
+              />
             </mesh>
             <Frame dimensions={dimensions} />
             {/* Door handles */}
@@ -137,7 +144,7 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
       case 'window':
         return (
           <group>
-            <mesh castShadow>
+            <mesh castShadow receiveShadow>
               <boxGeometry args={dimensions} />
               <meshStandardMaterial 
                 color="#87CEEB" 
@@ -145,6 +152,7 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
                 opacity={0.4} 
                 metalness={0.2}
                 roughness={0}
+                side={THREE.DoubleSide} // Ensure visibility from both sides
               />
             </mesh>
             <Frame dimensions={dimensions} />
@@ -164,9 +172,14 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
         return (
           <group>
             {/* Main door panel */}
-            <mesh castShadow>
+            <mesh castShadow receiveShadow>
               <boxGeometry args={dimensions} />
-              <meshStandardMaterial color="#708090" metalness={0.4} roughness={0.6} />
+              <meshStandardMaterial 
+                color="#708090" 
+                metalness={0.4} 
+                roughness={0.6}
+                side={THREE.DoubleSide} // Ensure visibility from both sides
+              />
             </mesh>
             
             {/* Horizontal panels */}
@@ -204,9 +217,14 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
       case 'walkDoor':
         return (
           <group>
-            <mesh castShadow>
+            <mesh castShadow receiveShadow>
               <boxGeometry args={dimensions} />
-              <meshStandardMaterial color="#696969" metalness={0.2} roughness={0.7} />
+              <meshStandardMaterial 
+                color="#696969" 
+                metalness={0.2} 
+                roughness={0.7}
+                side={THREE.DoubleSide} // Ensure visibility from both sides
+              />
             </mesh>
             <Frame dimensions={dimensions} />
             {/* Door handles */}
