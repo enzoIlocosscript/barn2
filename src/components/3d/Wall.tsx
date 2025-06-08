@@ -24,9 +24,6 @@ const Wall: React.FC<WallProps> = ({
   roofPitch = 0,
   wallFeatures = []
 }) => {
-  // Increased wall thickness to better hide beams
-  const wallThickness = 0.8; // Further increased for complete beam hiding
-  
   // Create ribbed texture with special handling for white
   const wallMaterial = useMemo(() => {
     const textureWidth = 512;
@@ -86,16 +83,14 @@ const Wall: React.FC<WallProps> = ({
     });
   }, [color, width, height]);
 
-  // Create wall geometry with cutouts for ALL features (windows AND doors)
+  // Create wall geometry with cutouts for windows only (doors remain solid for structural integrity)
   const wallGeometry = useMemo(() => {
-    // CRITICAL FIX: Filter features that need cutouts - INCLUDE DOORS
-    const cutoutFeatures = wallFeatures.filter(feature => 
-      feature.position.wallPosition === wallPosition && 
-      (feature.type === 'window' || feature.type === 'door' || feature.type === 'rollupDoor' || feature.type === 'walkDoor')
+    // Only create cutouts for windows - doors and other features remain solid
+    const windowFeatures = wallFeatures.filter(feature => 
+      feature.position.wallPosition === wallPosition && feature.type === 'window'
     );
 
-    console.log(`🏗️ Creating wall geometry for ${wallPosition} with ${cutoutFeatures.length} cutout features:`, 
-      cutoutFeatures.map(f => `${f.type} (${f.width}x${f.height})`));
+    console.log(`🏗️ Creating wall geometry for ${wallPosition} with ${windowFeatures.length} window cutouts`);
 
     // If it's a gabled wall (front/back) with roof pitch, create the gabled shape
     if ((wallPosition === 'front' || wallPosition === 'back') && roofPitch > 0) {
@@ -111,44 +106,44 @@ const Wall: React.FC<WallProps> = ({
       wallShape.lineTo(-width/2, height/2);
       wallShape.lineTo(-width/2, -height/2);
 
-      // Add ALL feature cutouts as holes (windows AND doors)
-      cutoutFeatures.forEach(feature => {
-        const featureHole = new THREE.Path();
+      // Add window cutouts as holes (doors remain solid for structural integrity)
+      windowFeatures.forEach(feature => {
+        const windowHole = new THREE.Path();
         
-        // Calculate feature position based on alignment
-        let featureX = 0;
+        // Calculate window position based on alignment
+        let windowX = 0;
         switch (feature.position.alignment) {
           case 'left':
-            featureX = -width/2 + feature.position.xOffset + feature.width/2;
+            windowX = -width/2 + feature.position.xOffset + feature.width/2;
             break;
           case 'right':
-            featureX = width/2 - feature.position.xOffset - feature.width/2;
+            windowX = width/2 - feature.position.xOffset - feature.width/2;
             break;
           case 'center':
           default:
-            featureX = feature.position.xOffset;
+            windowX = feature.position.xOffset;
             break;
         }
         
-        const featureY = -height/2 + feature.position.yOffset + feature.height/2;
+        const windowY = -height/2 + feature.position.yOffset + feature.height/2;
         
-        // Create rectangular hole for feature
+        // Create rectangular hole for window
         const halfWidth = feature.width / 2;
         const halfHeight = feature.height / 2;
         
-        featureHole.moveTo(featureX - halfWidth, featureY - halfHeight);
-        featureHole.lineTo(featureX + halfWidth, featureY - halfHeight);
-        featureHole.lineTo(featureX + halfWidth, featureY + halfHeight);
-        featureHole.lineTo(featureX - halfWidth, featureY + halfHeight);
-        featureHole.closePath();
+        windowHole.moveTo(windowX - halfWidth, windowY - halfHeight);
+        windowHole.lineTo(windowX + halfWidth, windowY - halfHeight);
+        windowHole.lineTo(windowX + halfWidth, windowY + halfHeight);
+        windowHole.lineTo(windowX - halfWidth, windowY + halfHeight);
+        windowHole.closePath();
         
-        wallShape.holes.push(featureHole);
-        console.log(`  Added ${feature.type} cutout at (${featureX.toFixed(1)}, ${featureY.toFixed(1)})`);
+        wallShape.holes.push(windowHole);
+        console.log(`  Added window cutout at (${windowX.toFixed(1)}, ${windowY.toFixed(1)})`);
       });
 
       const extrudeSettings = {
         steps: 1,
-        depth: wallThickness, // Use increased wall thickness
+        depth: 0.2,
         bevelEnabled: false
       };
 
@@ -174,13 +169,13 @@ const Wall: React.FC<WallProps> = ({
       geometry.attributes.uv.needsUpdate = true;
       return geometry;
     } else {
-      // Regular rectangular wall with ALL feature cutouts
-      if (cutoutFeatures.length === 0) {
-        // No features, return simple box geometry with increased thickness
-        return new THREE.BoxGeometry(width, height, wallThickness);
+      // Regular rectangular wall with window cutouts only
+      if (windowFeatures.length === 0) {
+        // No windows, return simple box geometry
+        return new THREE.BoxGeometry(width, height, 0.2);
       }
 
-      // Create wall shape with ALL feature cutouts
+      // Create wall shape with window cutouts only
       const wallShape = new THREE.Shape();
       wallShape.moveTo(-width/2, -height/2);
       wallShape.lineTo(width/2, -height/2);
@@ -188,44 +183,44 @@ const Wall: React.FC<WallProps> = ({
       wallShape.lineTo(-width/2, height/2);
       wallShape.closePath();
 
-      // Add ALL feature cutouts as holes (windows AND doors)
-      cutoutFeatures.forEach(feature => {
-        const featureHole = new THREE.Path();
+      // Add window cutouts as holes (doors remain solid)
+      windowFeatures.forEach(feature => {
+        const windowHole = new THREE.Path();
         
-        // Calculate feature position based on alignment
-        let featureX = 0;
+        // Calculate window position based on alignment
+        let windowX = 0;
         switch (feature.position.alignment) {
           case 'left':
-            featureX = -width/2 + feature.position.xOffset + feature.width/2;
+            windowX = -width/2 + feature.position.xOffset + feature.width/2;
             break;
           case 'right':
-            featureX = width/2 - feature.position.xOffset - feature.width/2;
+            windowX = width/2 - feature.position.xOffset - feature.width/2;
             break;
           case 'center':
           default:
-            featureX = feature.position.xOffset;
+            windowX = feature.position.xOffset;
             break;
         }
         
-        const featureY = -height/2 + feature.position.yOffset + feature.height/2;
+        const windowY = -height/2 + feature.position.yOffset + feature.height/2;
         
-        // Create rectangular hole for feature
+        // Create rectangular hole for window
         const halfWidth = feature.width / 2;
         const halfHeight = feature.height / 2;
         
-        featureHole.moveTo(featureX - halfWidth, featureY - halfHeight);
-        featureHole.lineTo(featureX + halfWidth, featureY - halfHeight);
-        featureHole.lineTo(featureX + halfWidth, featureY + halfHeight);
-        featureHole.lineTo(featureX - halfWidth, featureY + halfHeight);
-        featureHole.closePath();
+        windowHole.moveTo(windowX - halfWidth, windowY - halfHeight);
+        windowHole.lineTo(windowX + halfWidth, windowY - halfHeight);
+        windowHole.lineTo(windowX + halfWidth, windowY + halfHeight);
+        windowHole.lineTo(windowX - halfWidth, windowY + halfHeight);
+        windowHole.closePath();
         
-        wallShape.holes.push(featureHole);
-        console.log(`  Added ${feature.type} cutout at (${featureX.toFixed(1)}, ${featureY.toFixed(1)})`);
+        wallShape.holes.push(windowHole);
+        console.log(`  Added window cutout at (${windowX.toFixed(1)}, ${windowY.toFixed(1)})`);
       });
 
       const extrudeSettings = {
         steps: 1,
-        depth: wallThickness, // Use increased wall thickness
+        depth: 0.2,
         bevelEnabled: false
       };
 
@@ -251,22 +246,21 @@ const Wall: React.FC<WallProps> = ({
       geometry.attributes.uv.needsUpdate = true;
       return geometry;
     }
-  }, [width, height, wallPosition, roofPitch, wallFeatures, wallThickness]);
+  }, [width, height, wallPosition, roofPitch, wallFeatures]);
 
-  // Calculate beam segments using enhanced precision cutting around features
+  // ENHANCED: Generate structural beams that remain visible regardless of wall fixtures
   const beamSegments = useMemo(() => {
-    console.log(`\n🏗️  ENHANCED BEAM GENERATION for ${wallPosition} wall (${width}x${height}) with ${wallFeatures.length} features`);
+    console.log(`\n🏗️  PERSISTENT BEAM GENERATION for ${wallPosition} wall (${width}x${height})`);
     
-    // Filter features that are actually on this wall
-    const relevantFeatures = wallFeatures.filter(feature => 
-      feature.position.wallPosition === wallPosition
+    // Filter only window features for beam cutting - doors and decorations don't affect structural beams
+    const windowFeatures = wallFeatures.filter(feature => 
+      feature.position.wallPosition === wallPosition && feature.type === 'window'
     );
     
-    console.log(`Relevant features for ${wallPosition} wall:`, relevantFeatures.map(f => 
-      `${f.type} (${f.width}x${f.height}) at ${f.position.alignment} offset ${f.position.xOffset}, yOffset ${f.position.yOffset}`
-    ));
+    console.log(`Window features affecting beams: ${windowFeatures.length}`);
+    console.log(`Total wall features: ${wallFeatures.length} (${wallFeatures.length - windowFeatures.length} non-structural)`);
     
-    return generateBeamPositions(width, height, relevantFeatures, {
+    return generateBeamPositions(width, height, windowFeatures, {
       maxSpacing: 8,
       minSpacing: 4,
       margin: 2,
@@ -275,28 +269,28 @@ const Wall: React.FC<WallProps> = ({
     });
   }, [width, height, wallFeatures, wallPosition]);
 
-  // Calculate horizontal beam segments using enhanced precision cutting around features
+  // ENHANCED: Generate horizontal beams that remain visible regardless of wall fixtures
   const horizontalBeamSegments = useMemo(() => {
-    console.log(`\n🏗️  ENHANCED HORIZONTAL BEAM GENERATION for ${wallPosition} wall`);
+    console.log(`\n🏗️  PERSISTENT HORIZONTAL BEAM GENERATION for ${wallPosition} wall`);
     
-    // Filter features that are actually on this wall
-    const relevantFeatures = wallFeatures.filter(feature => 
-      feature.position.wallPosition === wallPosition
+    // Filter only window features for beam cutting
+    const windowFeatures = wallFeatures.filter(feature => 
+      feature.position.wallPosition === wallPosition && feature.type === 'window'
     );
     
     return generateHorizontalBeamPositions(
       width, 
       height, 
-      relevantFeatures, 
+      windowFeatures, 
       [0.25, 0.5, 0.75], // Height ratios for horizontal beams
       0.3 // Beam height
     );
   }, [width, height, wallFeatures, wallPosition]);
 
-  // Create enhanced steel beam segment with improved structural visualization
-  const createSteelBeamSegment = (segment: BeamSegment, segmentIndex: number) => {
+  // ENHANCED: Create persistent steel beam segments with architectural integrity
+  const createPersistentSteelBeam = (segment: BeamSegment, segmentIndex: number) => {
     const beamWidth = segment.width;
-    const beamDepth = 0.25; // Slightly increased for better visibility
+    const beamDepth = 0.2;
     const beamHeight = segment.topY - segment.bottomY;
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
@@ -304,26 +298,24 @@ const Wall: React.FC<WallProps> = ({
     const flangeHeight = 0.15;
     const flangeSpacing = Math.min(6, beamHeight / 4);
     
-    // CRITICAL FIX: Position beams ONLY on the interior side of walls
-    // Wall thickness is 0.8, so wall extends from -0.4 to +0.4
-    // Position beams deep inside the wall, closer to the interior surface
+    // Position beams consistently on interior side for all walls
     let zOffset = 0;
     switch (wallPosition) {
       case 'front':
-        zOffset = -0.35; // Interior side of front wall (inside the building)
+        zOffset = -0.1; // Interior side of front wall
         break;
       case 'back':
-        zOffset = 0.35; // Interior side of back wall (inside the building)
+        zOffset = 0.1; // Interior side of back wall
         break;
       case 'left':
-        zOffset = 0.35; // Interior side of left wall (inside the building)
+        zOffset = 0.1; // Interior side of left wall
         break;
       case 'right':
-        zOffset = 0.35; // Interior side of right wall (inside the building)
+        zOffset = 0.1; // Interior side of right wall
         break;
     }
     
-    // Enhanced steel material for better lighting response and structural appearance
+    // Enhanced steel material with architectural-grade appearance
     const steelMaterial = new THREE.MeshStandardMaterial({
       color: "#808080",
       metalness: 0.9,
@@ -331,20 +323,19 @@ const Wall: React.FC<WallProps> = ({
       envMapIntensity: 1.0,
     });
     
-    const key = `${segment.x}-${segment.bottomY}-${segment.topY}-${segmentIndex}`;
+    const key = `persistent-beam-${segment.x}-${segment.bottomY}-${segment.topY}-${segmentIndex}`;
     
     return (
       <group key={key} position={[segment.x, beamCenterY, zOffset]}>
-        {/* Main vertical beam segment with enhanced structural appearance */}
+        {/* Main structural beam segment - always visible */}
         <mesh castShadow receiveShadow position={[0, 0, 0]}>
           <boxGeometry args={[beamWidth, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
         
-        {/* Enhanced flanges along the beam - only add if beam segment is tall enough */}
+        {/* Architectural flanges for structural realism */}
         {beamHeight > 2 && Array.from({ length: Math.max(1, Math.ceil(beamHeight / flangeSpacing)) }).map((_, i) => {
           const flangeY = -beamHeight/2 + i * flangeSpacing;
-          // Don't place flange outside the beam bounds
           if (Math.abs(flangeY) > beamHeight/2) return null;
           
           return (
@@ -355,7 +346,7 @@ const Wall: React.FC<WallProps> = ({
           );
         })}
         
-        {/* Structural connection points at segment ends for visual continuity */}
+        {/* Structural connection points for seamless integration */}
         <mesh castShadow receiveShadow position={[0, -beamHeight/2, 0]}>
           <cylinderGeometry args={[beamWidth/3, beamWidth/3, 0.1, 8]} />
           <primitive object={steelMaterial} attach="material" />
@@ -368,31 +359,31 @@ const Wall: React.FC<WallProps> = ({
     );
   };
 
-  // Create enhanced horizontal beam segment with improved structural visualization
-  const createHorizontalBeamSegment = (segment: BeamSegment, segmentIndex: number) => {
+  // ENHANCED: Create persistent horizontal beam segments
+  const createPersistentHorizontalBeam = (segment: BeamSegment, segmentIndex: number) => {
     const beamWidth = segment.width;
     const beamHeight = segment.topY - segment.bottomY;
-    const beamDepth = 0.25; // Slightly increased for better visibility
+    const beamDepth = 0.2;
     const beamCenterY = (segment.topY + segment.bottomY) / 2;
     
-    // CRITICAL FIX: Position horizontal beams ONLY on the interior side
+    // Position horizontal beams consistently on interior side
     let zOffset = 0;
     switch (wallPosition) {
       case 'front':
-        zOffset = -0.35; // Interior side of front wall
+        zOffset = -0.1; // Interior side of front wall
         break;
       case 'back':
-        zOffset = 0.35; // Interior side of back wall
+        zOffset = 0.1; // Interior side of back wall
         break;
       case 'left':
-        zOffset = 0.35; // Interior side of left wall
+        zOffset = 0.1; // Interior side of left wall
         break;
       case 'right':
-        zOffset = 0.35; // Interior side of right wall
+        zOffset = 0.1; // Interior side of right wall
         break;
     }
     
-    // Enhanced steel material for better lighting response
+    // Enhanced steel material for architectural consistency
     const steelMaterial = new THREE.MeshStandardMaterial({
       color: "#808080",
       metalness: 0.9,
@@ -400,17 +391,17 @@ const Wall: React.FC<WallProps> = ({
       envMapIntensity: 1.0,
     });
     
-    const key = `h-${segment.x}-${segment.bottomY}-${segment.topY}-${segment.width}-${segmentIndex}`;
+    const key = `persistent-h-beam-${segment.x}-${segment.bottomY}-${segment.topY}-${segment.width}-${segmentIndex}`;
     
     return (
       <group key={key} position={[segment.x, beamCenterY, zOffset]}>
-        {/* Main horizontal beam segment with enhanced structural appearance */}
+        {/* Main horizontal structural beam - always visible */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[beamWidth, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
         </mesh>
         
-        {/* Enhanced end caps for horizontal beams with structural detailing */}
+        {/* Structural end caps for architectural integrity */}
         <mesh castShadow receiveShadow position={[-beamWidth/2, 0, 0]}>
           <boxGeometry args={[beamHeight, beamHeight, beamDepth]} />
           <primitive object={steelMaterial} attach="material" />
@@ -420,7 +411,7 @@ const Wall: React.FC<WallProps> = ({
           <primitive object={steelMaterial} attach="material" />
         </mesh>
         
-        {/* Structural connection points for visual continuity */}
+        {/* Seamless connection points */}
         <mesh castShadow receiveShadow position={[-beamWidth/2, 0, 0]}>
           <cylinderGeometry args={[beamHeight/4, beamHeight/4, 0.1, 6]} />
           <primitive object={steelMaterial} attach="material" />
@@ -435,17 +426,17 @@ const Wall: React.FC<WallProps> = ({
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Wall with ALL feature cutouts (windows AND doors) - now much thicker */}
+      {/* Wall with window cutouts only - doors remain solid for structural integrity */}
       <mesh castShadow receiveShadow>
         <primitive object={wallGeometry} />
         <primitive object={wallMaterial} attach="material" />
       </mesh>
       
-      {/* Render enhanced precision-cut vertical beam segments with structural continuity */}
-      {beamSegments.map((segment, index) => createSteelBeamSegment(segment, index))}
+      {/* PERSISTENT STRUCTURAL BEAMS - Always visible regardless of wall fixtures */}
+      {beamSegments.map((segment, index) => createPersistentSteelBeam(segment, index))}
       
-      {/* Render enhanced precision-cut horizontal beam segments with structural continuity */}
-      {horizontalBeamSegments.map((segment, index) => createHorizontalBeamSegment(segment, index))}
+      {/* PERSISTENT HORIZONTAL BEAMS - Always visible with seamless connections */}
+      {horizontalBeamSegments.map((segment, index) => createPersistentHorizontalBeam(segment, index))}
     </group>
   );
 };
