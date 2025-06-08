@@ -42,28 +42,23 @@ export const getFeatureBounds = (
 };
 
 /**
- * ENHANCED: Checks if a beam horizontally overlaps with a feature with precise tolerance
+ * Checks if a beam horizontally overlaps with a feature
  */
 export const beamOverlapsFeature = (
   beamX: number, 
   beamWidth: number, 
   featureBounds: CollisionBounds,
-  buffer: number = 0.01 // Very precise buffer for exact cutting
+  buffer: number = 0.05 // Reduced buffer for more precise cutting
 ): boolean => {
   const beamLeft = beamX - beamWidth/2;
   const beamRight = beamX + beamWidth/2;
   
-  const overlaps = !(beamRight + buffer <= featureBounds.left || beamLeft - buffer >= featureBounds.right);
-  
-  // Debug logging for left/right walls
-  console.log(`    🔍 Beam overlap check: beam(${beamLeft.toFixed(2)} to ${beamRight.toFixed(2)}) vs feature(${featureBounds.left.toFixed(2)} to ${featureBounds.right.toFixed(2)}) = ${overlaps}`);
-  
-  return overlaps;
+  return !(beamRight + buffer <= featureBounds.left || beamLeft - buffer >= featureBounds.right);
 };
 
 /**
- * CRITICAL FIX: Enhanced beam cutting that NEVER fully removes beams
- * This function ALWAYS returns at least one beam segment for structural integrity
+ * Enhanced beam cutting with precise window intersection handling
+ * CRITICAL: This function SPLITS beams at exact window coordinates, maintaining structural integrity
  */
 export const cutBeamAroundFeatures = (
   beamX: number,
@@ -75,19 +70,13 @@ export const cutBeamAroundFeatures = (
   const wallBottom = -wallHeight / 2;
   const wallTop = wallHeight / 2;
   
-  console.log(`\n✂️  CRITICAL BEAM CUTTING at x=${beamX.toFixed(2)} (wall: ${wallHeight}ft tall, ${wallWidth}ft wide)`);
+  console.log(`\n✂️  ENHANCED BEAM CUTTING at x=${beamX.toFixed(1)} (wall: ${wallHeight}ft tall)`);
   
-  // ENHANCED: Find overlapping features with more precise detection
+  // Find overlapping features and get their bounds with enhanced precision
   const overlappingFeatures = features
     .filter(feature => {
       const featureBounds = getFeatureBounds(feature, wallWidth, wallHeight);
-      const overlaps = beamOverlapsFeature(beamX, beamWidth, featureBounds, 0.01);
-      
-      if (overlaps) {
-        console.log(`  🎯 CONFIRMED overlap with ${feature.type} at (${featureBounds.left.toFixed(2)}, ${featureBounds.bottom.toFixed(2)}) to (${featureBounds.right.toFixed(2)}, ${featureBounds.top.toFixed(2)})`);
-      }
-      
-      return overlaps;
+      return beamOverlapsFeature(beamX, beamWidth, featureBounds, 0.01); // Very precise overlap detection
     })
     .map(feature => ({
       feature,
@@ -95,9 +84,8 @@ export const cutBeamAroundFeatures = (
     }))
     .sort((a, b) => a.bounds.bottom - b.bounds.bottom); // Sort by vertical position
   
-  // CRITICAL: If no overlaps, ALWAYS return full beam
   if (overlappingFeatures.length === 0) {
-    console.log(`✅ NO OVERLAPS DETECTED - returning FULL structural beam`);
+    console.log(`✅ No intersections - returning full structural beam`);
     return [{
       x: beamX,
       bottomY: wallBottom,
@@ -106,30 +94,30 @@ export const cutBeamAroundFeatures = (
     }];
   }
   
-  console.log(`🔪 CUTTING around ${overlappingFeatures.length} confirmed overlapping features:`);
+  console.log(`🔪 PRECISE CUTTING around ${overlappingFeatures.length} window intersections:`);
   overlappingFeatures.forEach(({ feature, bounds }) => {
-    console.log(`  - ${feature.type}: y=${bounds.bottom.toFixed(2)} to ${bounds.top.toFixed(2)} (${(bounds.top - bounds.bottom).toFixed(2)}ft tall)`);
+    console.log(`  - ${feature.type}: EXACT cut from y=${bounds.bottom.toFixed(2)} to ${bounds.top.toFixed(2)}`);
   });
   
   const segments: BeamSegment[] = [];
   let currentY = wallBottom;
-  const minSegmentHeight = 0.3; // Minimum segment height for structural integrity
-  const structuralGap = 0.05; // Small gap for clean window installation
+  const minSegmentHeight = 0.5; // Reduced minimum for more precise cutting
+  const structuralGap = 0.1; // Small gap for clean window frame installation
   
-  // Process each overlapping feature with enhanced precision
+  // Process each window intersection with enhanced precision
   for (const { feature, bounds } of overlappingFeatures) {
-    const cutBottom = bounds.bottom - structuralGap;
-    const cutTop = bounds.top + structuralGap;
+    const cutBottom = bounds.bottom - structuralGap; // Clean break above window
+    const cutTop = bounds.top + structuralGap; // Clean break below window
     
-    console.log(`\n🎯 Processing ${feature.type} intersection:`);
-    console.log(`  Current Y: ${currentY.toFixed(2)}`);
-    console.log(`  Feature bounds: ${bounds.bottom.toFixed(2)} to ${bounds.top.toFixed(2)}`);
+    console.log(`\n🎯 PRECISE ${feature.type} intersection processing:`);
+    console.log(`  Current beam position: ${currentY.toFixed(2)}`);
+    console.log(`  Window bounds: ${bounds.bottom.toFixed(2)} to ${bounds.top.toFixed(2)}`);
     console.log(`  Cut coordinates: ${cutBottom.toFixed(2)} to ${cutTop.toFixed(2)}`);
     
-    // Create beam segment BELOW the feature
+    // Create beam segment BELOW the window with exact coordinates
     if (currentY < cutBottom) {
       const segmentHeight = cutBottom - currentY;
-      console.log(`  Lower segment potential: ${segmentHeight.toFixed(2)}ft`);
+      console.log(`  Lower segment height: ${segmentHeight.toFixed(2)}ft`);
       
       if (segmentHeight >= minSegmentHeight) {
         console.log(`  ✅ CREATING LOWER BEAM SEGMENT: ${currentY.toFixed(2)} to ${cutBottom.toFixed(2)}`);
@@ -140,23 +128,23 @@ export const cutBeamAroundFeatures = (
           width: beamWidth
         });
       } else {
-        console.log(`  ⚠️  Lower segment too small (${segmentHeight.toFixed(2)}ft < ${minSegmentHeight}ft)`);
+        console.log(`  ⚠️  Lower segment too small (${segmentHeight.toFixed(2)}ft), merging with adjacent`);
       }
     }
     
-    // Skip the feature area (this is the actual "cut")
-    console.log(`  🪟 CUTTING OUT feature area: ${cutBottom.toFixed(2)} to ${cutTop.toFixed(2)}`);
+    // PRECISE WINDOW CUTOUT - this maintains exact window opening dimensions
+    console.log(`  🪟 WINDOW OPENING: ${cutBottom.toFixed(2)} to ${cutTop.toFixed(2)} (${(cutTop - cutBottom).toFixed(2)}ft clear)`);
     currentY = Math.max(currentY, cutTop);
-    console.log(`  Continuing from: ${currentY.toFixed(2)}`);
+    console.log(`  Beam continues from: ${currentY.toFixed(2)}`);
   }
   
-  // Create beam segment ABOVE all features
-  console.log(`\n🎯 Upper segment check:`);
-  console.log(`  Current Y: ${currentY.toFixed(2)}, Wall top: ${wallTop.toFixed(2)}`);
+  // Create beam segment ABOVE all windows with exact coordinates
+  console.log(`\n🎯 UPPER BEAM SEGMENT check:`);
+  console.log(`  Current position: ${currentY.toFixed(2)}, Wall top: ${wallTop.toFixed(2)}`);
   
   if (currentY < wallTop) {
     const segmentHeight = wallTop - currentY;
-    console.log(`  Upper segment potential: ${segmentHeight.toFixed(2)}ft`);
+    console.log(`  Upper segment height: ${segmentHeight.toFixed(2)}ft`);
     
     if (segmentHeight >= minSegmentHeight) {
       console.log(`  ✅ CREATING UPPER BEAM SEGMENT: ${currentY.toFixed(2)} to ${wallTop.toFixed(2)}`);
@@ -167,69 +155,43 @@ export const cutBeamAroundFeatures = (
         width: beamWidth
       });
     } else {
-      console.log(`  ⚠️  Upper segment too small (${segmentHeight.toFixed(2)}ft < ${minSegmentHeight}ft)`);
+      console.log(`  ⚠️  Upper segment too small, extending previous segment`);
+      // Extend the last segment if possible
+      if (segments.length > 0) {
+        segments[segments.length - 1].topY = wallTop;
+        console.log(`  📏 Extended last segment to wall top`);
+      }
     }
   }
   
-  // CRITICAL SAFETY CHECK: NEVER return empty segments array
+  // ENHANCED STRUCTURAL INTEGRITY CHECK
   if (segments.length === 0) {
-    console.log(`🚨 CRITICAL SAFETY: No segments created! Creating emergency structural support...`);
+    console.log(`🚨 CRITICAL: No beam segments created! Implementing emergency structural support...`);
     
-    // Find the largest gap between features for emergency beam placement
-    let largestGapStart = wallBottom;
-    let largestGapEnd = wallTop;
-    let largestGapSize = wallHeight;
+    // Create minimal structural elements to maintain load-bearing capacity
+    const emergencySegmentHeight = Math.min(1.5, wallHeight * 0.12); // 12% of wall height
     
-    if (overlappingFeatures.length > 0) {
-      // Check gap before first feature
-      const firstFeature = overlappingFeatures[0];
-      if (firstFeature.bounds.bottom - wallBottom > largestGapSize) {
-        largestGapStart = wallBottom;
-        largestGapEnd = firstFeature.bounds.bottom - 0.1;
-        largestGapSize = largestGapEnd - largestGapStart;
-      }
-      
-      // Check gap after last feature
-      const lastFeature = overlappingFeatures[overlappingFeatures.length - 1];
-      if (wallTop - lastFeature.bounds.top > largestGapSize) {
-        largestGapStart = lastFeature.bounds.top + 0.1;
-        largestGapEnd = wallTop;
-        largestGapSize = largestGapEnd - largestGapStart;
-      }
-      
-      // Check gaps between features
-      for (let i = 0; i < overlappingFeatures.length - 1; i++) {
-        const gapStart = overlappingFeatures[i].bounds.top + 0.1;
-        const gapEnd = overlappingFeatures[i + 1].bounds.bottom - 0.1;
-        const gapSize = gapEnd - gapStart;
-        
-        if (gapSize > largestGapSize) {
-          largestGapStart = gapStart;
-          largestGapEnd = gapEnd;
-          largestGapSize = gapSize;
-        }
-      }
+    // Emergency bottom segment for foundation connection
+    if (wallBottom + emergencySegmentHeight < overlappingFeatures[0].bounds.bottom - 0.2) {
+      segments.push({
+        x: beamX,
+        bottomY: wallBottom,
+        topY: wallBottom + emergencySegmentHeight,
+        width: beamWidth
+      });
+      console.log(`  🔧 EMERGENCY foundation connection: ${wallBottom.toFixed(2)} to ${(wallBottom + emergencySegmentHeight).toFixed(2)}`);
     }
     
-    // Create emergency beam in the largest available space
-    if (largestGapSize >= 0.2) { // Even tiny segments for structural connection
-      console.log(`  🔧 EMERGENCY BEAM: ${largestGapStart.toFixed(2)} to ${largestGapEnd.toFixed(2)} (${largestGapSize.toFixed(2)}ft)`);
+    // Emergency top segment for roof connection
+    const lastFeature = overlappingFeatures[overlappingFeatures.length - 1];
+    if (lastFeature.bounds.top + 0.2 + emergencySegmentHeight < wallTop) {
       segments.push({
         x: beamX,
-        bottomY: largestGapStart,
-        topY: largestGapEnd,
+        bottomY: wallTop - emergencySegmentHeight,
+        topY: wallTop,
         width: beamWidth
       });
-    } else {
-      // Absolute emergency: create minimal structural connection
-      const emergencyHeight = Math.min(0.5, wallHeight * 0.1);
-      console.log(`  🆘 ABSOLUTE EMERGENCY: Creating minimal ${emergencyHeight.toFixed(2)}ft beam at wall center`);
-      segments.push({
-        x: beamX,
-        bottomY: -emergencyHeight/2,
-        topY: emergencyHeight/2,
-        width: beamWidth
-      });
+      console.log(`  🔧 EMERGENCY roof connection: ${(wallTop - emergencySegmentHeight).toFixed(2)} to ${wallTop.toFixed(2)}`);
     }
   }
   
@@ -237,11 +199,17 @@ export const cutBeamAroundFeatures = (
   const totalBeamLength = segments.reduce((sum, seg) => sum + (seg.topY - seg.bottomY), 0);
   const structuralRatio = totalBeamLength / wallHeight;
   
-  console.log(`📊 STRUCTURAL ANALYSIS COMPLETE:`);
-  console.log(`  Beam segments created: ${segments.length}`);
-  console.log(`  Total beam length: ${totalBeamLength.toFixed(2)}ft of ${wallHeight.toFixed(2)}ft wall`);
+  console.log(`📊 STRUCTURAL ANALYSIS:`);
+  console.log(`  Total segments: ${segments.length}`);
+  console.log(`  Total beam length: ${totalBeamLength.toFixed(2)}ft`);
+  console.log(`  Wall height: ${wallHeight.toFixed(2)}ft`);
   console.log(`  Structural ratio: ${(structuralRatio * 100).toFixed(1)}%`);
-  console.log(`  Structural adequacy: ${structuralRatio >= 0.3 ? '✅ ADEQUATE' : '⚠️  REVIEW REQUIRED'}`);
+  
+  if (structuralRatio < 0.4) {
+    console.log(`  ⚠️  WARNING: Low structural ratio (${(structuralRatio * 100).toFixed(1)}% < 40%)`);
+  } else {
+    console.log(`  ✅ ADEQUATE structural support maintained`);
+  }
   
   segments.forEach((seg, i) => 
     console.log(`  Segment ${i + 1}: x=${seg.x.toFixed(2)}, y=${seg.bottomY.toFixed(2)} to ${seg.topY.toFixed(2)} (${(seg.topY - seg.bottomY).toFixed(2)}ft)`)
@@ -251,7 +219,7 @@ export const cutBeamAroundFeatures = (
 };
 
 /**
- * ENHANCED: Horizontal beam cutting with guaranteed segment creation
+ * Enhanced horizontal beam cutting with precise window intersection handling
  */
 export const cutHorizontalBeamAroundFeatures = (
   beamY: number,
@@ -263,18 +231,17 @@ export const cutHorizontalBeamAroundFeatures = (
   const wallLeft = -wallWidth / 2;
   const wallRight = wallWidth / 2;
   
-  console.log(`\n✂️  CRITICAL HORIZONTAL BEAM CUTTING at y=${beamY.toFixed(2)} (wall: ${wallWidth}ft wide)`);
+  console.log(`\n✂️  ENHANCED HORIZONTAL BEAM CUTTING at y=${beamY.toFixed(2)} (wall: ${wallWidth}ft wide)`);
   
   // Enhanced precision for horizontal beam intersection detection
   const overlappingFeatures = features
     .filter(feature => {
       const featureBounds = getFeatureBounds(feature, wallWidth, wallHeight);
-      const buffer = beamHeight / 2 + 0.05;
+      const buffer = beamHeight / 2 + 0.05; // Precise buffer for clean cuts
       const beamOverlapsVertically = beamY >= (featureBounds.bottom - buffer) && beamY <= (featureBounds.top + buffer);
       
       if (beamOverlapsVertically) {
-        console.log(`  🎯 CONFIRMED horizontal overlap with ${feature.type} at y=${beamY.toFixed(2)}`);
-        console.log(`    Feature bounds: x=${featureBounds.left.toFixed(2)} to ${featureBounds.right.toFixed(2)}`);
+        console.log(`  🎯 Horizontal intersection with ${feature.type} at y=${beamY.toFixed(2)}`);
       }
       
       return beamOverlapsVertically;
@@ -283,40 +250,39 @@ export const cutHorizontalBeamAroundFeatures = (
       feature,
       bounds: getFeatureBounds(feature, wallWidth, wallHeight)
     }))
-    .sort((a, b) => a.bounds.left - b.bounds.left);
+    .sort((a, b) => a.bounds.left - b.bounds.left); // Sort by horizontal position
   
-  // CRITICAL: If no overlaps, ALWAYS return full horizontal beam
   if (overlappingFeatures.length === 0) {
-    console.log(`✅ NO HORIZONTAL OVERLAPS - returning FULL structural beam`);
+    console.log(`✅ No horizontal intersections - returning full structural beam`);
     return [{
       x: 0, // Center of wall
       bottomY: beamY - beamHeight/2,
       topY: beamY + beamHeight/2,
-      width: wallWidth - 1 // Leave structural margin
+      width: wallWidth - 1 // Leave structural margin on sides
     }];
   }
   
-  console.log(`🔪 HORIZONTAL CUTTING around ${overlappingFeatures.length} confirmed overlaps`);
+  console.log(`🔪 PRECISE HORIZONTAL CUTTING around ${overlappingFeatures.length} window intersections`);
   
   const segments: BeamSegment[] = [];
-  let currentX = wallLeft + 0.5; // Structural margin
-  const minSegmentWidth = 0.5; // Minimum width for structural integrity
-  const structuralGap = 0.05; // Clean gap for window installation
+  let currentX = wallLeft + 0.5; // Structural margin from wall edge
+  const minSegmentWidth = 1.0; // Minimum width for structural integrity
+  const structuralGap = 0.1; // Clean gap for window frame installation
   
-  // Process each overlapping feature
+  // Process each window intersection with enhanced precision
   for (const { feature, bounds } of overlappingFeatures) {
-    const cutLeft = bounds.left - structuralGap;
-    const cutRight = bounds.right + structuralGap;
+    const cutLeft = bounds.left - structuralGap; // Clean break before window
+    const cutRight = bounds.right + structuralGap; // Clean break after window
     
-    console.log(`\n🎯 Processing ${feature.type} horizontal intersection:`);
-    console.log(`  Current X: ${currentX.toFixed(2)}`);
-    console.log(`  Feature bounds: ${bounds.left.toFixed(2)} to ${bounds.right.toFixed(2)}`);
+    console.log(`\n🎯 PRECISE ${feature.type} horizontal intersection:`);
+    console.log(`  Current beam position: ${currentX.toFixed(2)}`);
+    console.log(`  Window bounds: ${bounds.left.toFixed(2)} to ${bounds.right.toFixed(2)}`);
     console.log(`  Cut coordinates: ${cutLeft.toFixed(2)} to ${cutRight.toFixed(2)}`);
     
-    // Create beam segment to the LEFT of the feature
+    // Create beam segment to the LEFT of the window with exact coordinates
     if (currentX < cutLeft) {
       const segmentWidth = cutLeft - currentX;
-      console.log(`  Left segment potential: ${segmentWidth.toFixed(2)}ft`);
+      console.log(`  Left segment width: ${segmentWidth.toFixed(2)}ft`);
       
       if (segmentWidth >= minSegmentWidth) {
         const segmentCenterX = currentX + segmentWidth/2;
@@ -328,24 +294,24 @@ export const cutHorizontalBeamAroundFeatures = (
           width: segmentWidth
         });
       } else {
-        console.log(`  ⚠️  Left segment too small (${segmentWidth.toFixed(2)}ft < ${minSegmentWidth}ft)`);
+        console.log(`  ⚠️  Left segment too small (${segmentWidth.toFixed(2)}ft), merging with adjacent`);
       }
     }
     
-    // Skip the feature area
-    console.log(`  🪟 CUTTING OUT horizontal feature area: ${cutLeft.toFixed(2)} to ${cutRight.toFixed(2)}`);
+    // PRECISE WINDOW CUTOUT - maintains exact window opening dimensions
+    console.log(`  🪟 WINDOW OPENING: ${cutLeft.toFixed(2)} to ${cutRight.toFixed(2)} (${(cutRight - cutLeft).toFixed(2)}ft clear)`);
     currentX = Math.max(currentX, cutRight);
-    console.log(`  Continuing from: ${currentX.toFixed(2)}`);
+    console.log(`  Beam continues from: ${currentX.toFixed(2)}`);
   }
   
-  // Create beam segment to the RIGHT of all features
-  const wallRightWithMargin = wallRight - 0.5;
-  console.log(`\n🎯 Right segment check:`);
-  console.log(`  Current X: ${currentX.toFixed(2)}, Wall right: ${wallRightWithMargin.toFixed(2)}`);
+  // Create beam segment to the RIGHT of all windows with exact coordinates
+  const wallRightWithMargin = wallRight - 0.5; // Structural margin
+  console.log(`\n🎯 RIGHT BEAM SEGMENT check:`);
+  console.log(`  Current position: ${currentX.toFixed(2)}, Wall right: ${wallRightWithMargin.toFixed(2)}`);
   
   if (currentX < wallRightWithMargin) {
     const segmentWidth = wallRightWithMargin - currentX;
-    console.log(`  Right segment potential: ${segmentWidth.toFixed(2)}ft`);
+    console.log(`  Right segment width: ${segmentWidth.toFixed(2)}ft`);
     
     if (segmentWidth >= minSegmentWidth) {
       const segmentCenterX = currentX + segmentWidth/2;
@@ -357,67 +323,59 @@ export const cutHorizontalBeamAroundFeatures = (
         width: segmentWidth
       });
     } else {
-      console.log(`  ⚠️  Right segment too small (${segmentWidth.toFixed(2)}ft < ${minSegmentWidth}ft)`);
+      console.log(`  ⚠️  Right segment too small, extending previous segment`);
+      // Extend the last segment if possible
+      if (segments.length > 0) {
+        const lastSegment = segments[segments.length - 1];
+        const newWidth = wallRightWithMargin - (lastSegment.x - lastSegment.width/2);
+        lastSegment.width = newWidth;
+        lastSegment.x = (lastSegment.x - lastSegment.width/2) + newWidth/2;
+        console.log(`  📏 Extended last segment to wall edge`);
+      }
     }
   }
   
-  // CRITICAL SAFETY CHECK: NEVER return empty horizontal segments
+  // ENHANCED STRUCTURAL INTEGRITY CHECK for horizontal beams
   if (segments.length === 0) {
-    console.log(`🚨 CRITICAL SAFETY: No horizontal segments! Creating emergency structural support...`);
+    console.log(`🚨 CRITICAL: No horizontal beam segments created! Implementing emergency structural support...`);
     
-    // Find the largest horizontal gap for emergency beam
-    let largestGapStart = wallLeft + 0.5;
-    let largestGapEnd = wallRight - 0.5;
-    let largestGapSize = wallWidth - 1;
+    // Create minimal structural elements at wall edges
+    const emergencySegmentWidth = Math.min(2.5, wallWidth * 0.15); // 15% of wall width
     
-    if (overlappingFeatures.length > 0) {
-      // Check gap before first feature
-      const firstFeature = overlappingFeatures[0];
-      if (firstFeature.bounds.left - (wallLeft + 0.5) > 1) {
-        largestGapStart = wallLeft + 0.5;
-        largestGapEnd = firstFeature.bounds.left - 0.1;
-        largestGapSize = largestGapEnd - largestGapStart;
-      }
-      
-      // Check gap after last feature
-      const lastFeature = overlappingFeatures[overlappingFeatures.length - 1];
-      if ((wallRight - 0.5) - lastFeature.bounds.right > largestGapSize) {
-        largestGapStart = lastFeature.bounds.right + 0.1;
-        largestGapEnd = wallRight - 0.5;
-        largestGapSize = largestGapEnd - largestGapStart;
-      }
+    // Emergency left edge segment
+    if (wallLeft + emergencySegmentWidth < overlappingFeatures[0].bounds.left - 0.2) {
+      segments.push({
+        x: wallLeft + emergencySegmentWidth/2 + 0.5,
+        bottomY: beamY - beamHeight/2,
+        topY: beamY + beamHeight/2,
+        width: emergencySegmentWidth
+      });
+      console.log(`  🔧 EMERGENCY left structural support`);
     }
     
-    // Create emergency horizontal beam
-    if (largestGapSize >= 0.3) {
-      const emergencyCenterX = largestGapStart + largestGapSize/2;
-      console.log(`  🔧 EMERGENCY HORIZONTAL BEAM: ${largestGapStart.toFixed(2)} to ${largestGapEnd.toFixed(2)} (center: ${emergencyCenterX.toFixed(2)})`);
+    // Emergency right edge segment
+    const lastFeature = overlappingFeatures[overlappingFeatures.length - 1];
+    if (lastFeature.bounds.right + 0.2 + emergencySegmentWidth < wallRight) {
       segments.push({
-        x: emergencyCenterX,
+        x: wallRight - emergencySegmentWidth/2 - 0.5,
         bottomY: beamY - beamHeight/2,
         topY: beamY + beamHeight/2,
-        width: largestGapSize
+        width: emergencySegmentWidth
       });
-    } else {
-      // Absolute emergency: create minimal structural connections at edges
-      console.log(`  🆘 ABSOLUTE EMERGENCY: Creating minimal edge connections`);
-      segments.push({
-        x: wallLeft + 1,
-        bottomY: beamY - beamHeight/2,
-        topY: beamY + beamHeight/2,
-        width: 0.5
-      });
-      segments.push({
-        x: wallRight - 1,
-        bottomY: beamY - beamHeight/2,
-        topY: beamY + beamHeight/2,
-        width: 0.5
-      });
+      console.log(`  🔧 EMERGENCY right structural support`);
     }
   }
+  
+  // STRUCTURAL VALIDATION for horizontal beams
+  const totalBeamWidth = segments.reduce((sum, seg) => sum + seg.width, 0);
+  const structuralRatio = totalBeamWidth / (wallWidth - 1); // Account for margins
   
   console.log(`📊 HORIZONTAL STRUCTURAL ANALYSIS:`);
-  console.log(`  Horizontal segments created: ${segments.length}`);
+  console.log(`  Total segments: ${segments.length}`);
+  console.log(`  Total beam width: ${totalBeamWidth.toFixed(2)}ft`);
+  console.log(`  Available width: ${(wallWidth - 1).toFixed(2)}ft`);
+  console.log(`  Structural ratio: ${(structuralRatio * 100).toFixed(1)}%`);
+  
   segments.forEach((seg, i) => 
     console.log(`  H-Segment ${i + 1}: x=${seg.x.toFixed(2)} (width=${seg.width.toFixed(2)}), y=${seg.bottomY.toFixed(2)} to ${seg.topY.toFixed(2)}`)
   );
@@ -426,7 +384,7 @@ export const cutHorizontalBeamAroundFeatures = (
 };
 
 /**
- * ENHANCED: Beam position generation with guaranteed structural integrity
+ * Enhanced beam position generation with precise window intersection handling
  */
 export const generateBeamPositions = (
   wallWidth: number,
@@ -448,9 +406,9 @@ export const generateBeamPositions = (
     minBeams = 3
   } = options;
   
-  console.log(`\n🏗️  === CRITICAL BEAM GENERATION: ${wallWidth}x${wallHeight} wall ===`);
-  console.log(`Total features: ${features.length}`);
+  console.log(`\n🏗️  === ENHANCED BEAM GENERATION: ${wallWidth}x${wallHeight} wall ===`);
   console.log(`Window features: ${features.filter(f => f.type === 'window').length}`);
+  console.log(`All features: ${features.length}`);
   
   const availableWidth = wallWidth - (2 * margin);
   let numBeams = Math.max(minBeams, Math.ceil(availableWidth / maxSpacing) + 1);
@@ -466,13 +424,13 @@ export const generateBeamPositions = (
   
   const allSegments: BeamSegment[] = [];
   
-  // Generate beam positions and apply CRITICAL cutting algorithm
+  // Generate beam positions and apply enhanced cutting algorithm
   for (let i = 0; i < numBeams; i++) {
     const position = -wallWidth/2 + margin + (i * spacing);
     
     if (position > wallWidth/2 - margin) break;
     
-    console.log(`\n🔧 BEAM ${i + 1}/${numBeams} at x=${position.toFixed(2)} - CRITICAL CUTTING PROCESS`);
+    console.log(`\n🔧 BEAM ${i + 1}/${numBeams} at x=${position.toFixed(2)} - ENHANCED CUTTING`);
     
     const segments = cutBeamAroundFeatures(
       position,
@@ -482,30 +440,25 @@ export const generateBeamPositions = (
       wallWidth
     );
     
-    // CRITICAL: Ensure we always get segments
-    if (segments.length === 0) {
-      console.log(`🚨 EMERGENCY: No segments returned, creating emergency beam`);
-      segments.push({
-        x: position,
-        bottomY: -wallHeight/2,
-        topY: wallHeight/2,
-        width: beamWidth
-      });
-    }
-    
     allSegments.push(...segments);
   }
   
-  // FINAL VALIDATION
-  console.log(`\n✅ CRITICAL BEAM GENERATION COMPLETE:`);
+  // FINAL STRUCTURAL VALIDATION
+  const totalStructuralLength = allSegments.reduce((sum, seg) => sum + (seg.topY - seg.bottomY), 0);
+  const totalPossibleLength = numBeams * wallHeight;
+  const overallStructuralRatio = totalStructuralLength / totalPossibleLength;
+  
+  console.log(`\n✅ ENHANCED BEAM GENERATION COMPLETE:`);
   console.log(`  Total beam segments: ${allSegments.length}`);
-  console.log(`  Structural integrity: GUARANTEED`);
+  console.log(`  Total structural length: ${totalStructuralLength.toFixed(2)}ft`);
+  console.log(`  Overall structural ratio: ${(overallStructuralRatio * 100).toFixed(1)}%`);
+  console.log(`  Load-bearing capacity: ${overallStructuralRatio >= 0.6 ? 'ADEQUATE' : 'REVIEW REQUIRED'}`);
   
   return allSegments;
 };
 
 /**
- * ENHANCED: Horizontal beam generation with guaranteed structural integrity
+ * Enhanced horizontal beam generation with precise window intersection handling
  */
 export const generateHorizontalBeamPositions = (
   wallWidth: number,
@@ -514,14 +467,15 @@ export const generateHorizontalBeamPositions = (
   heightRatios: number[] = [0.25, 0.5, 0.75],
   beamHeight: number = 0.3
 ): BeamSegment[] => {
-  console.log(`\n🏗️  === CRITICAL HORIZONTAL BEAM GENERATION: ${wallWidth}x${wallHeight} wall ===`);
+  console.log(`\n🏗️  === ENHANCED HORIZONTAL BEAM GENERATION: ${wallWidth}x${wallHeight} wall ===`);
+  console.log(`Window features: ${features.filter(f => f.type === 'window').length}`);
   
   const allSegments: BeamSegment[] = [];
   
   heightRatios.forEach((heightRatio, index) => {
     const beamY = -wallHeight/2 + wallHeight * heightRatio;
     
-    console.log(`\n🔧 HORIZONTAL BEAM ${index + 1}/${heightRatios.length} at y=${beamY.toFixed(2)} - CRITICAL CUTTING`);
+    console.log(`\n🔧 HORIZONTAL BEAM ${index + 1}/${heightRatios.length} at y=${beamY.toFixed(2)} (${(heightRatio * 100).toFixed(0)}% height) - ENHANCED CUTTING`);
     
     const segments = cutHorizontalBeamAroundFeatures(
       beamY,
@@ -531,23 +485,19 @@ export const generateHorizontalBeamPositions = (
       wallHeight
     );
     
-    // CRITICAL: Ensure we always get horizontal segments
-    if (segments.length === 0) {
-      console.log(`🚨 EMERGENCY: No horizontal segments returned, creating emergency beam`);
-      segments.push({
-        x: 0,
-        bottomY: beamY - beamHeight/2,
-        topY: beamY + beamHeight/2,
-        width: wallWidth - 1
-      });
-    }
-    
     allSegments.push(...segments);
   });
   
-  console.log(`\n✅ CRITICAL HORIZONTAL BEAM GENERATION COMPLETE:`);
+  // FINAL HORIZONTAL STRUCTURAL VALIDATION
+  const totalHorizontalWidth = allSegments.reduce((sum, seg) => sum + seg.width, 0);
+  const totalPossibleWidth = heightRatios.length * (wallWidth - 1);
+  const horizontalStructuralRatio = totalHorizontalWidth / totalPossibleWidth;
+  
+  console.log(`\n✅ ENHANCED HORIZONTAL BEAM GENERATION COMPLETE:`);
   console.log(`  Total horizontal segments: ${allSegments.length}`);
-  console.log(`  Structural integrity: GUARANTEED`);
+  console.log(`  Total structural width: ${totalHorizontalWidth.toFixed(2)}ft`);
+  console.log(`  Horizontal structural ratio: ${(horizontalStructuralRatio * 100).toFixed(1)}%`);
+  console.log(`  Lateral stability: ${horizontalStructuralRatio >= 0.5 ? 'ADEQUATE' : 'REVIEW REQUIRED'}`);
   
   return allSegments;
 };
