@@ -248,19 +248,21 @@ const Wall: React.FC<WallProps> = ({
     }
   }, [width, height, wallPosition, roofPitch, wallFeatures]);
 
-  // ENHANCED: Generate structural beams that remain visible regardless of wall fixtures
+  // CRITICAL FIX: Generate structural beams that split around ALL features (including doors)
   const beamSegments = useMemo(() => {
-    console.log(`\n🏗️  PERSISTENT BEAM GENERATION for ${wallPosition} wall (${width}x${height})`);
+    console.log(`\n🏗️  STRUCTURAL BEAM GENERATION for ${wallPosition} wall (${width}x${height})`);
     
-    // Filter only window features for beam cutting - doors and decorations don't affect structural beams
-    const windowFeatures = wallFeatures.filter(feature => 
-      feature.position.wallPosition === wallPosition && feature.type === 'window'
+    // FIXED: Include ALL features for beam cutting - doors AND windows affect structural beams
+    const allFeatures = wallFeatures.filter(feature => 
+      feature.position.wallPosition === wallPosition
     );
     
-    console.log(`Window features affecting beams: ${windowFeatures.length}`);
-    console.log(`Total wall features: ${wallFeatures.length} (${wallFeatures.length - windowFeatures.length} non-structural)`);
+    console.log(`All features affecting beams: ${allFeatures.length}`);
+    allFeatures.forEach(f => 
+      console.log(`  - ${f.type} (${f.width}x${f.height}) at ${f.position.alignment} offset ${f.position.xOffset}`)
+    );
     
-    return generateBeamPositions(width, height, windowFeatures, {
+    return generateBeamPositions(width, height, allFeatures, {
       maxSpacing: 8,
       minSpacing: 4,
       margin: 2,
@@ -269,25 +271,25 @@ const Wall: React.FC<WallProps> = ({
     });
   }, [width, height, wallFeatures, wallPosition]);
 
-  // ENHANCED: Generate horizontal beams that remain visible regardless of wall fixtures
+  // CRITICAL FIX: Generate horizontal beams that split around ALL features (including doors)
   const horizontalBeamSegments = useMemo(() => {
-    console.log(`\n🏗️  PERSISTENT HORIZONTAL BEAM GENERATION for ${wallPosition} wall`);
+    console.log(`\n🏗️  HORIZONTAL STRUCTURAL BEAM GENERATION for ${wallPosition} wall`);
     
-    // Filter only window features for beam cutting
-    const windowFeatures = wallFeatures.filter(feature => 
-      feature.position.wallPosition === wallPosition && feature.type === 'window'
+    // FIXED: Include ALL features for horizontal beam cutting
+    const allFeatures = wallFeatures.filter(feature => 
+      feature.position.wallPosition === wallPosition
     );
     
     return generateHorizontalBeamPositions(
       width, 
       height, 
-      windowFeatures, 
+      allFeatures, 
       [0.25, 0.5, 0.75], // Height ratios for horizontal beams
       0.3 // Beam height
     );
   }, [width, height, wallFeatures, wallPosition]);
 
-  // CRITICAL FIX: Calculate interior-side Z offset for ALL walls consistently
+  // CRITICAL FIX: Calculate correct interior-side Z offset for ALL walls
   const getInteriorZOffset = (wallPos: WallPosition): number => {
     console.log(`🎯 Calculating interior Z offset for ${wallPos} wall`);
     
@@ -296,14 +298,14 @@ const Wall: React.FC<WallProps> = ({
         console.log(`  Front wall: beams at z = -0.15 (interior side)`);
         return -0.15; // Interior side of front wall (negative Z)
       case 'back':
-        console.log(`  Back wall: beams at z = 0.15 (interior side)`);
-        return 0.15;  // Interior side of back wall (positive Z)
+        console.log(`  Back wall: beams at z = -0.15 (interior side)`);
+        return -0.15;  // FIXED: Interior side of back wall (negative Z, not positive)
       case 'left':
         console.log(`  Left wall: beams at z = 0.15 (interior side)`);
         return 0.15;  // Interior side of left wall (positive Z)
       case 'right':
-        console.log(`  Right wall: beams at z = 0.15 (interior side)`);
-        return 0.15;  // Interior side of right wall (positive Z)
+        console.log(`  Right wall: beams at z = -0.15 (interior side)`);
+        return -0.15;  // Interior side of right wall (negative Z)
       default:
         console.log(`  Unknown wall position, defaulting to z = 0.1`);
         return 0.1;
@@ -427,10 +429,10 @@ const Wall: React.FC<WallProps> = ({
         <primitive object={wallMaterial} attach="material" />
       </mesh>
       
-      {/* PERSISTENT STRUCTURAL BEAMS - Always visible on interior side regardless of wall fixtures */}
+      {/* STRUCTURAL BEAMS - Split around ALL features (doors AND windows) on interior side */}
       {beamSegments.map((segment, index) => createPersistentSteelBeam(segment, index))}
       
-      {/* PERSISTENT HORIZONTAL BEAMS - Always visible on interior side with seamless connections */}
+      {/* HORIZONTAL BEAMS - Split around ALL features (doors AND windows) on interior side */}
       {horizontalBeamSegments.map((segment, index) => createPersistentHorizontalBeam(segment, index))}
     </group>
   );
