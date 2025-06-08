@@ -52,9 +52,9 @@ const WallFeature: React.FC<WallFeatureProps> = ({ feature, buildingDimensions }
       case 'left':
         x = -halfWidth - 0.1; // Slight offset to prevent z-fighting
         
-        if (feature.position.alignment === 'left') {
+        if (feature.position.alignment === 'right') {
           z = -halfLength + feature.width/2 + feature.position.xOffset;
-        } else if (feature.position.alignment === 'right') {
+        } else if (feature.position.alignment === 'left') {
           z = halfLength - feature.width/2 - feature.position.xOffset;
         } else { // center
           z = feature.position.xOffset;
